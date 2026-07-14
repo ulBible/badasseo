@@ -1,1 +1,0 @@
-print("Badasseo app placeholder")

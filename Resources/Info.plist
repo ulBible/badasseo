@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleIdentifier</key><string>app.badasseo</string>
+    <key>CFBundleName</key><string>받아써</string>
+    <key>CFBundleExecutable</key><string>Badasseo</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.1.0</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>LSUIElement</key><true/>
+    <key>NSMicrophoneUsageDescription</key><string>말한 내용을 텍스트로 바꾸기 위해 마이크를 사용해요. 음성은 이 맥을 벗어나지 않아요.</string>
+</dict></plist>
