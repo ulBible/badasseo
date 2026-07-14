@@ -1,4 +1,5 @@
 import SwiftUI
+import BadasseoCore
 import BadasseoEngine
 
 @main
@@ -14,7 +15,7 @@ struct BadasseoApp: App {
                 Text("마지막: \(String(state.lastResult.prefix(30)))")
             }
             Divider()
-            ForEach(Array(state.history.entries().prefix(5).enumerated()), id: \.offset) { _, e in
+            ForEach(Array(state.recent.prefix(5).enumerated()), id: \.offset) { _, e in
                 Button(String(e.text.prefix(40))) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(e.text, forType: .string)
