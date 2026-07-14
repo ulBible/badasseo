@@ -1,0 +1,61 @@
+// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+    name: "Badasseo",
+    platforms: [.macOS(.v14)],
+    products: [
+        .executable(name: "Badasseo", targets: ["Badasseo"]),
+        .executable(name: "badasseo-cli", targets: ["badasseo-cli"]),
+    ],
+    dependencies: [
+        // whisper.cpp removed its Package.swift from the repo root in March 2025
+        // (commit 5bb1d58c, "whisper: add xcframework build script") in favor of
+        // publishing a prebuilt XCFramework per release. The README-documented
+        // SPM fallback `ggml-org/whisper.spm` 301-redirects to a stale
+        // ggerganov/whisper.spm repo (last pushed 2024-05-27) whose manifest
+        // explicitly EXCLUDES ggml-metal.m/.metal ("TODO: make Metal work, I
+        // can't figure out how") and predates whisper.cpp's current ggml
+        // backend layout. Using it would silently ship a CPU-only, out-of-date
+        // engine. Instead we consume the official prebuilt XCFramework
+        // (see the `whisper` binaryTarget below), which is the path documented
+        // in whisper.cpp's current README ("## XCFramework" section) and is
+        // confirmed to link Metal.framework and contain compiled Metal
+        // backend symbols.
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.0.0"),
+    ],
+    targets: [
+        .target(name: "BadasseoCore", path: "Sources/BadasseoCore"),
+        .binaryTarget(
+            name: "whisper",
+            url: "https://github.com/ggml-org/whisper.cpp/releases/download/v1.9.1/whisper-v1.9.1-xcframework.zip",
+            checksum: "8c3ecbe73f48b0cb9318fc3058264f951ab336fd530e82c4ccdd2298d1311a4c"
+        ),
+        .target(
+            name: "BadasseoEngine",
+            dependencies: [
+                "BadasseoCore",
+                "whisper",
+            ],
+            path: "Sources/BadasseoEngine"
+        ),
+        .executableTarget(
+            name: "Badasseo",
+            dependencies: [
+                "BadasseoCore", "BadasseoEngine",
+                .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
+            ],
+            path: "Sources/Badasseo"
+        ),
+        .executableTarget(
+            name: "badasseo-cli",
+            dependencies: ["BadasseoCore", "BadasseoEngine"],
+            path: "Sources/badasseo-cli"
+        ),
+        .testTarget(
+            name: "BadasseoCoreTests",
+            dependencies: ["BadasseoCore"],
+            path: "Tests/BadasseoCoreTests"
+        ),
+    ]
+)

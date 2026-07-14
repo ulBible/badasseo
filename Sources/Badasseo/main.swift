@@ -1,0 +1,1 @@
+print("Badasseo app placeholder")
