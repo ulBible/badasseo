@@ -25,8 +25,9 @@ def transcribe(model_path, wav):
     t0 = time.monotonic()
     r = subprocess.run(
         ["whisper-cli", "-m", str(model_path), "-f", str(wav), "-l", "ko", "-nt"],
-        capture_output=True, text=True, timeout=300)
-    return r.stdout.strip(), time.monotonic() - t0
+        capture_output=True, timeout=300)
+    # whisper-cli가 간혹 불완전한 UTF-8 바이트를 내보냄 (실측: 0x85) — 크래시 대신 대체
+    return r.stdout.decode("utf-8", errors="replace").strip(), time.monotonic() - t0
 
 
 def main():
