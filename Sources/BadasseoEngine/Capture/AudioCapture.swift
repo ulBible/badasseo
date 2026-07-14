@@ -15,7 +15,7 @@ public final class AudioCapture: @unchecked Sendable {
     public init() {}
 
     public func start() throws {
-        samples = []
+        lock.lock(); samples = []; lock.unlock()
         let input = engine.inputNode
         let inFormat = input.outputFormat(forBus: 0)
         let target = AVAudioFormat(commonFormat: .pcmFormatFloat32,
@@ -34,8 +34,14 @@ public final class AudioCapture: @unchecked Sendable {
                                                   count: Int(out.frameLength)))
             self.lock.lock(); self.samples.append(contentsOf: chunk); self.lock.unlock()
         }
-        engine.prepare()
-        try engine.start()
+        do {
+            engine.prepare()
+            try engine.start()
+        } catch {
+            // start 실패 시 탭을 남겨두면 재시도 installTap이 ObjC 프리컨디션으로 크래시.
+            input.removeTap(onBus: 0)
+            throw error
+        }
     }
 
     public func stop() -> [Float] {
