@@ -5,10 +5,10 @@ import BadasseoEngine
 // 사용법: badasseo-cli <model.bin> <audio.wav | record> — 파이프라인(전사→정제) 검증용
 let args = CommandLine.arguments
 
-func runPipeline(engine: WhisperEngine, samples: [Float]) {
+func runPipeline(engine: WhisperEngine, samples: [Float]) throws {
     let dict = UserDictionary.defaultSeed
     let t0 = Date()
-    let raw = engine.transcribe(samples: samples, promptTerms: Array(Set(dict.values)).sorted())
+    let raw = try engine.transcribe(samples: samples, promptTerms: Array(Set(dict.values)).sorted())
     let refined = Refiner.refine(raw, dictionary: dict)
     print("raw    : \(raw)")
     print("refined: \(refined)")
@@ -25,11 +25,11 @@ do {
         Thread.sleep(forTimeInterval: 5)
         let samples = cap.stop()
         print("샘플 수: \(samples.count) (기대: ~80000)")
-        runPipeline(engine: engine, samples: samples)
+        try runPipeline(engine: engine, samples: samples)
     case 3:  // badasseo-cli <model> <audio-file>
         let engine = try WhisperEngine(modelPath: args[1])
         let samples = try WavLoader.loadSamples(url: URL(fileURLWithPath: args[2]))
-        runPipeline(engine: engine, samples: samples)
+        try runPipeline(engine: engine, samples: samples)
     default:
         print("usage: badasseo-cli <model.bin> <audio-file | record>")
         exit(1)

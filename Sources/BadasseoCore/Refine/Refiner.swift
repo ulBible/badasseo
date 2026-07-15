@@ -5,7 +5,7 @@ public enum Refiner {
     public static func refine(_ text: String, dictionary: [String: String]) -> String {
         var t = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         guard !t.isEmpty else { return "" }
-        for key in dictionary.keys.sorted(by: { $0.count > $1.count }) {  // 긴 키 우선
+        for key in dictionary.keys.sorted(by: { $0.count != $1.count ? $0.count > $1.count : $0 > $1 }) {  // 긴 키 우선, 동률은 사전 역순 결정론
             t = t.replacingOccurrences(of: key, with: dictionary[key]!)
         }
         if let last = t.last, !".?!".contains(last) { t += "." }

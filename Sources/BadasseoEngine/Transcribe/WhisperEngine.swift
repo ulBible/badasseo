@@ -1,7 +1,7 @@
 import Foundation
 import whisper
 
-public enum WhisperError: Error { case modelLoadFailed(String) }
+public enum WhisperError: Error { case modelLoadFailed(String), transcribeFailed(Int32) }
 
 /// whisper.cpp 상주 래퍼 — ko 고정, 번역 금지 (스펙 쐐기 ①).
 ///
@@ -24,7 +24,7 @@ public final class WhisperEngine: @unchecked Sendable {
     }
     deinit { whisper_free(ctx) }
 
-    public func transcribe(samples: [Float], promptTerms: [String] = []) -> String {
+    public func transcribe(samples: [Float], promptTerms: [String] = []) throws -> String {
         var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
         params.print_progress = false
         params.print_realtime = false
@@ -33,15 +33,15 @@ public final class WhisperEngine: @unchecked Sendable {
         params.no_timestamps = true
         params.single_segment = false
         let prompt = promptTerms.joined(separator: ", ")
-        return "ko".withCString { ko in
+        return try "ko".withCString { ko in
             params.language = ko
-            return prompt.withCString { p in
+            return try prompt.withCString { p in
                 if !promptTerms.isEmpty { params.initial_prompt = p }
                 var out = ""
                 let rc = samples.withUnsafeBufferPointer { buf in
                     whisper_full(ctx, params, buf.baseAddress, Int32(buf.count))
                 }
-                guard rc == 0 else { return "" }
+                guard rc == 0 else { throw WhisperError.transcribeFailed(rc) }
                 for i in 0..<whisper_full_n_segments(ctx) {
                     out += String(cString: whisper_full_get_segment_text(ctx, i))
                 }

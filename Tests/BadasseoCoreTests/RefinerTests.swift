@@ -21,4 +21,9 @@ final class RefinerTests: XCTestCase {
         XCTAssertEqual(Refiner.refine("", dictionary: dict), "")
         XCTAssertEqual(Refiner.refine("   ", dictionary: dict), "")
     }
+    func testEqualLengthKeysDeterministic() {
+        let d = ["가나": "X", "나다": "Y"]
+        // 정렬 타이브레이크(사전 역순: "나다" 먼저) → "가" + Y = 항상 동일 결과
+        XCTAssertEqual(Refiner.refine("가나다", dictionary: d), "가Y.")
+    }
 }

@@ -55,20 +55,25 @@ final class AppState: ObservableObject {
                 await MainActor.run { self?.status = .error("모델 없음: \(modelPath)") }
                 return
             }
-            let raw = engine.transcribe(samples: samples, promptTerms: terms)
-            let refined = Refiner.refine(raw, dictionary: dict)
-            await MainActor.run {
-                guard let self else { return }
-                self.engine = engine  // 캐시 (다음부터 재사용) — 할당은 MainActor에서만
-                if refined.isEmpty {
-                    self.status = .idle  // 무음·잡음 — 삽입하지 않음 (스펙)
-                } else {
-                    TextInserter.insert(refined)
-                    self.history.append(refined)
-                    self.recent = self.history.entries()
-                    self.lastResult = refined
-                    self.status = .idle
+            do {
+                let raw = try engine.transcribe(samples: samples, promptTerms: terms)
+                let refined = Refiner.refine(raw, dictionary: dict)
+                await MainActor.run {
+                    guard let self else { return }
+                    self.engine = engine  // 캐시 (다음부터 재사용) — 할당은 MainActor에서만
+                    if refined.isEmpty {
+                        self.status = .idle  // 무음·잡음 — 삽입하지 않음 (스펙)
+                    } else {
+                        TextInserter.insert(refined)
+                        self.history.append(refined)
+                        self.recent = self.history.entries()
+                        self.lastResult = refined
+                        self.status = .idle
+                    }
                 }
+            } catch {
+                await MainActor.run { self?.status = .error("전사 실패 — 다시 시도해 주세요") }
+                return
             }
         }
     }
