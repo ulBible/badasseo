@@ -6,3 +6,6 @@ default.profraw
 bench/audio/
 bench/results/
 models/
+bench/.venv/
+bench/blind.md
+bench/blind_key.json
