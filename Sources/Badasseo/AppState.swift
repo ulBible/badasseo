@@ -89,9 +89,9 @@ final class AppState: ObservableObject {
         activeHotkeySource = nil
         guard case .recording = status else { return }
         let samples = capture.stop()
-        SoundPlayer.shared.playStop()
         status = .processing
-        guard samples.count > 8000 else { status = .idle; return }  // <0.5초 = 무시
+        guard samples.count > 8000 else { status = .idle; return }  // <0.5초 = 무시 (무반응 — 종료음도 없음)
+        SoundPlayer.shared.playStop()
         let dict = dictionary.load()
         let terms = dictionary.promptTerms()
         // 모델 로드(1.6GB whisper_init)는 반드시 메인 스레드 밖에서 — @MainActor 메서드로
