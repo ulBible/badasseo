@@ -28,3 +28,12 @@ public struct UserDictionary {
 
     public func promptTerms() -> [String] { Array(Set(load().values)).sorted() }
 }
+
+public extension UserDictionary {
+    /// 앱 표준 사전 파일 — AppState·설정 창의 단일 경로 출처.
+    static var standard: UserDictionary {
+        let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Badasseo/dictionary.json")
+        return UserDictionary(fileURL: url)
+    }
+}
