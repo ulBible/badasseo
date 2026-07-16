@@ -23,8 +23,14 @@ final class AppState: ObservableObject {
     private var engine: WhisperEngine?
     private let modifierHoldMonitor = ModifierHoldMonitor()
 
+    /// 현재 녹음 세션을 시작시킨 경로("rightCommand"/"custom"). begin 시점에만 모드를
+    /// 확인해 세팅하고, end/cancel은 모드 재확인 대신 이 값으로 자기 세션인지만 본다 —
+    /// 그래야 녹음 중 설정에서 모드를 바꿔도 시작한 경로가 끝까지 책임지고 정리한다
+    /// (모드를 양쪽에서 가드하면, 전환 후 end 가드가 막혀 `.recording`에 고착된다).
+    private var activeHotkeySource: String?
+
     /// 두 단축키 경로(우측 ⌘ 홀드 / 사용자 지정 조합) 모두 항상 연결돼 있고,
-    /// 이벤트마다 이 값을 확인해 실행 여부를 가른다 — 설정 변경 시 재구성이 필요 없다.
+    /// begin 시점에 이 값을 확인해 실행 여부를 가른다 — 설정 변경 시 재구성이 필요 없다.
     static var hotkeyMode: String {
         UserDefaults.standard.string(forKey: "hotkeyMode") ?? "rightCommand"
     }
@@ -37,22 +43,24 @@ final class AppState: ObservableObject {
         recent = history.entries()
         KeyboardShortcuts.onKeyDown(for: .pushToTalk) { [weak self] in
             guard Self.hotkeyMode == "custom" else { return }
+            self?.activeHotkeySource = "custom"
             self?.beginRecording()
         }
         KeyboardShortcuts.onKeyUp(for: .pushToTalk) { [weak self] in
-            guard Self.hotkeyMode == "custom" else { return }
+            guard self?.activeHotkeySource == "custom" else { return }
             self?.endRecording()
         }
         modifierHoldMonitor.onBegin = { [weak self] in
             guard Self.hotkeyMode == "rightCommand" else { return }
+            self?.activeHotkeySource = "rightCommand"
             self?.beginRecording()
         }
         modifierHoldMonitor.onEnd = { [weak self] in
-            guard Self.hotkeyMode == "rightCommand" else { return }
+            guard self?.activeHotkeySource == "rightCommand" else { return }
             self?.endRecording()
         }
         modifierHoldMonitor.onCancel = { [weak self] in
-            guard Self.hotkeyMode == "rightCommand" else { return }
+            guard self?.activeHotkeySource == "rightCommand" else { return }
             self?.cancelRecording()
         }
         modifierHoldMonitor.start()
@@ -66,12 +74,14 @@ final class AppState: ObservableObject {
 
     /// 홀드 중 다른 키가 눌려 조합 단축키로 판정된 경우 — 전사하지 않고 녹음을 폐기.
     private func cancelRecording() {
+        activeHotkeySource = nil
         guard case .recording = status else { return }
         _ = capture.stop()
         status = .idle
     }
 
     private func endRecording() {
+        activeHotkeySource = nil
         guard case .recording = status else { return }
         let samples = capture.stop()
         status = .processing

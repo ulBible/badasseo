@@ -39,18 +39,30 @@ public final class ModifierHoldMonitor {
 
     public func start() {
         globalFlagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            MainActor.assumeIsolated { self?.handleFlagsChanged(event) }
+            Self.dispatchToMain { self?.handleFlagsChanged(event) }
         }
         localFlagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            MainActor.assumeIsolated { self?.handleFlagsChanged(event) }
+            Self.dispatchToMain { self?.handleFlagsChanged(event) }
             return event
         }
         globalKeyDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            MainActor.assumeIsolated { self?.handleKeyDown(event) }
+            Self.dispatchToMain { self?.handleKeyDown(event) }
         }
         localKeyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            MainActor.assumeIsolated { self?.handleKeyDown(event) }
+            Self.dispatchToMain { self?.handleKeyDown(event) }
             return event
+        }
+    }
+
+    /// NSEvent 모니터 콜백은 AppKit 문서상 항상 메인 스레드에서 호출되지만, 그 가정이
+    /// 틀렸을 때 `MainActor.assumeIsolated`는 즉시 크래시한다. 실제로 메인 스레드일 때는
+    /// (거의 항상) 동기 실행해 기존 타이밍을 유지하고, 아닐 때만 메인 큐로 홉해
+    /// 크래시 대신 안전하게 처리한다.
+    private static func dispatchToMain(_ work: @escaping () -> Void) {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { work() }
+        } else {
+            DispatchQueue.main.async { work() }
         }
     }
 
@@ -64,14 +76,21 @@ public final class ModifierHoldMonitor {
         localKeyDownMonitor = nil
     }
 
+    /// 우측 ⌘의 물리적 디바이스 비트 (NX_DEVICERCMDKEYMASK, IOLLEvent.h).
+    /// `NSEvent.ModifierFlags.command`는 좌/우 ⌘ 모두에 서는 OR 비트라서, 좌측 ⌘를
+    /// 쥔 채로 우측 ⌘만 떼도 `.command`가 여전히 켜져 있어 release를 놓친다(→ 고착).
+    /// 디바이스별 비트로 직접 검사해야 우측 ⌘ 하나의 물리 상태만 정확히 추적한다.
+    /// 좌측 ⌘ 비트(NX_DEVICELCMDKEYMASK = 0x0008)와는 독립된 비트라 서로 간섭하지 않는다.
+    private static let rightCommandDeviceMask: UInt = 0x0010
+
     private func handleFlagsChanged(_ event: NSEvent) {
         guard event.keyCode == keyCode else { return }
-        let commandDown = event.modifierFlags.contains(.command)
-        if commandDown, !holding {
+        let rightCmdDown = event.modifierFlags.rawValue & Self.rightCommandDeviceMask != 0
+        if rightCmdDown, !holding {
             holding = true
             canceled = false
             onBegin?()
-        } else if !commandDown, holding {
+        } else if !rightCmdDown, holding {
             holding = false
             if canceled {
                 onCancel?()
