@@ -62,6 +62,10 @@ final class AppState: ObservableObject {
             self?.cancelRecording()
         }
         modifierHoldMonitor.start()
+        // custom 모드가 아니면 Carbon 핫키 등록을 비활성 — 등록만으로도 ⌥Space가
+        // 시스템 전역에서 소비되어(Alfred 등과 충돌) "무간섭" 원칙을 깬다.
+        // 모드 전환 시 GeneralTab이 enable/disable을 토글한다.
+        if Self.hotkeyMode != "custom" { KeyboardShortcuts.disable(.pushToTalk) }
     }
 
     private func beginRecording() {

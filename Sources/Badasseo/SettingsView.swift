@@ -26,6 +26,11 @@ struct GeneralTab: View {
                 Text("사용자 지정 조합").tag("custom")
             }
             .pickerStyle(.radioGroup).labelsHidden()
+            .onChange(of: hotkeyMode) { _, mode in
+                // 등록만으로도 조합 키가 전역 소비되므로, custom일 때만 Carbon 핫키 활성
+                if mode == "custom" { KeyboardShortcuts.enable(.pushToTalk) }
+                else { KeyboardShortcuts.disable(.pushToTalk) }
+            }
             if hotkeyMode == "custom" {
                 KeyboardShortcuts.Recorder("조합 키", name: .pushToTalk)
             }
