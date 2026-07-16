@@ -42,7 +42,7 @@ final class AppState: ObservableObject {
     init() {
         recent = history.entries()
         KeyboardShortcuts.onKeyDown(for: .pushToTalk) { [weak self] in
-            guard Self.hotkeyMode == "custom" else { return }
+            guard Self.hotkeyMode == "custom", self?.activeHotkeySource == nil else { return }
             self?.activeHotkeySource = "custom"
             self?.beginRecording()
         }
@@ -51,7 +51,7 @@ final class AppState: ObservableObject {
             self?.endRecording()
         }
         modifierHoldMonitor.onBegin = { [weak self] in
-            guard Self.hotkeyMode == "rightCommand" else { return }
+            guard Self.hotkeyMode == "rightCommand", self?.activeHotkeySource == nil else { return }
             self?.activeHotkeySource = "rightCommand"
             self?.beginRecording()
         }
@@ -72,6 +72,9 @@ final class AppState: ObservableObject {
         do {
             try capture.start()
             status = .recording
+            // 시작음은 의도적으로 즉시 재생 — "녹음이 시작됐다"는 피드백이 목적이라 지연 불가.
+            // 조합 취소(cancelRecording) 시 종료음만 억제됨: 시작음이 이미 난 것은 수용된 트레이드오프
+            // (opt-in 설정 + 취소는 mic 데이터도 폐기되므로 내용 유출 없음).
             SoundPlayer.shared.playStart()
         } catch { status = .error("마이크 시작 실패") }
     }
