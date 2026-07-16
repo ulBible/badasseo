@@ -33,4 +33,8 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertTrue(store.entries().isEmpty)
         XCTAssertTrue(HistoryStore(fileURL: url).entries().isEmpty)
     }
+    func testStandardPathAndDefaultLimit() {
+        XCTAssertTrue(HistoryStore.standard.fileURL.path.hasSuffix("Badasseo/history.json"))
+        XCTAssertEqual(HistoryStore(fileURL: tempURL()).limit, 500)
+    }
 }

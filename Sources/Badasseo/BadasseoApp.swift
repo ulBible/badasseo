@@ -16,13 +16,6 @@ struct BadasseoApp: App {
                 Text("마지막: \(String(state.lastResult.prefix(30)))")
             }
             Divider()
-            ForEach(Array(state.recent.prefix(5).enumerated()), id: \.offset) { _, e in
-                Button(String(e.text.prefix(40))) {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(e.text, forType: .string)
-                }
-            }
-            Divider()
             Text(TextInserter.hasAccessibility
                  ? "붙여넣기: 활성" : "손쉬운 사용 권한 필요 — 클립보드 복사만 동작")
             Button("설정…") {

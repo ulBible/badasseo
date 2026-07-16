@@ -12,13 +12,12 @@ final class AppState: ObservableObject {
     enum Status { case idle, recording, processing, error(String) }
     @Published var status: Status = .idle
     @Published var lastResult: String = ""
-    @Published private(set) var recent: [HistoryEntry] = []
 
     private let support = FileManager.default.urls(for: .applicationSupportDirectory,
                                                    in: .userDomainMask)[0]
         .appendingPathComponent("Badasseo")
     private lazy var dictionary = UserDictionary.standard
-    private(set) lazy var history = HistoryStore(fileURL: support.appendingPathComponent("history.json"))
+    private(set) lazy var history = HistoryStore.standard
     private let capture = AudioCapture()
     private var engine: WhisperEngine?
     private let modifierHoldMonitor = ModifierHoldMonitor()
@@ -40,7 +39,6 @@ final class AppState: ObservableObject {
     }
 
     init() {
-        recent = history.entries()
         KeyboardShortcuts.onKeyDown(for: .pushToTalk) { [weak self] in
             guard Self.hotkeyMode == "custom", self?.activeHotkeySource == nil else { return }
             self?.activeHotkeySource = "custom"
@@ -117,7 +115,6 @@ final class AppState: ObservableObject {
                     } else {
                         TextInserter.insert(refined)
                         self.history.append(refined)
-                        self.recent = self.history.entries()
                         self.lastResult = refined
                         self.status = .idle
                     }

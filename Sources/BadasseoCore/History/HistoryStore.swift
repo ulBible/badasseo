@@ -9,7 +9,7 @@ public struct HistoryEntry: Codable, Equatable {
 public final class HistoryStore {
     let fileURL: URL
     let limit: Int
-    public init(fileURL: URL, limit: Int = 50) {
+    public init(fileURL: URL, limit: Int = 500) {
         self.fileURL = fileURL
         self.limit = limit
     }
@@ -32,5 +32,14 @@ public final class HistoryStore {
         try? FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         if let data = try? JSONEncoder().encode(list) { try? data.write(to: fileURL) }
+    }
+}
+
+public extension HistoryStore {
+    /// 앱 표준 히스토리 파일 — AppState·설정 창의 단일 경로 출처.
+    static var standard: HistoryStore {
+        let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Badasseo/history.json")
+        return HistoryStore(fileURL: url)
     }
 }

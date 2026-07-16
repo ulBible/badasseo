@@ -22,6 +22,8 @@ public enum TextInserter {
         }
         pb.clearContents()
         pb.setString(text, forType: .string)
+        // 클립보드 매니저(vClips 등)가 전사 텍스트를 히스토리에 기록하지 않도록 — 업계 표준 마커
+        pb.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
         let ourChangeCount = pb.changeCount
 
         // 권한 없음 / 보안 입력 활성(암호 필드 — 합성 이벤트가 시스템에서 무시됨) /
