@@ -6,6 +6,7 @@ import BadasseoCore
 struct SettingsView: View {
     @State private var rows: [DictionaryRows.Row] = []
     @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
+    @AppStorage("soundFeedback") private var soundFeedback = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -50,6 +51,10 @@ struct SettingsView: View {
                     rows = DictionaryRows.rows(from: UserDictionary.defaultSeed)
                 }
             }
+            Divider()
+            Toggle("입력 시작/종료음", isOn: $soundFeedback)
+            Text("받아써의 기본은 무음이에요. 켜면 절제된 키 사운드가 재생돼요.")
+                .font(.callout).foregroundStyle(.secondary)
         }
         .padding(16)
         .frame(width: 440)

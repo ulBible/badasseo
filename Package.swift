@@ -45,7 +45,8 @@ let package = Package(
                 "BadasseoCore", "BadasseoEngine",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
-            path: "Sources/Badasseo"
+            path: "Sources/Badasseo",
+            resources: [.process("Resources")]
         ),
         .executableTarget(
             name: "badasseo-cli",

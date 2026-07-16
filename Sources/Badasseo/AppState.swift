@@ -69,7 +69,11 @@ final class AppState: ObservableObject {
     private func beginRecording() {
         // .error에서도 시작 허용 — 레코딩 재시도가 곧 에러 해제. (에러 문구는 다음 시도까지 메뉴에 유지)
         switch status { case .idle, .error: break; default: return }
-        do { try capture.start(); status = .recording } catch { status = .error("마이크 시작 실패") }
+        do {
+            try capture.start()
+            status = .recording
+            SoundPlayer.shared.playStart()
+        } catch { status = .error("마이크 시작 실패") }
     }
 
     /// 홀드 중 다른 키가 눌려 조합 단축키로 판정된 경우 — 전사하지 않고 녹음을 폐기.
@@ -84,6 +88,7 @@ final class AppState: ObservableObject {
         activeHotkeySource = nil
         guard case .recording = status else { return }
         let samples = capture.stop()
+        SoundPlayer.shared.playStop()
         status = .processing
         guard samples.count > 8000 else { status = .idle; return }  // <0.5초 = 무시
         let dict = dictionary.load()
