@@ -17,7 +17,7 @@ final class AppState: ObservableObject {
     private let support = FileManager.default.urls(for: .applicationSupportDirectory,
                                                    in: .userDomainMask)[0]
         .appendingPathComponent("Badasseo")
-    private lazy var dictionary = UserDictionary(fileURL: support.appendingPathComponent("dictionary.json"))
+    private lazy var dictionary = UserDictionary.standard
     private(set) lazy var history = HistoryStore(fileURL: support.appendingPathComponent("history.json"))
     private let capture = AudioCapture()
     private var engine: WhisperEngine?

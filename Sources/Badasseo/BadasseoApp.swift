@@ -24,10 +24,12 @@ struct BadasseoApp: App {
             Divider()
             Text(TextInserter.hasAccessibility
                  ? "붙여넣기: 활성" : "손쉬운 사용 권한 필요 — 클립보드 복사만 동작")
+            SettingsLink { Text("설정…") }
             Button("종료") { NSApp.terminate(nil) }
         } label: {
             Image(systemName: iconName)
         }
+        Settings { SettingsView() }
     }
 
     private var iconName: String {
