@@ -91,6 +91,7 @@ final class AppState: ObservableObject {
         let samples = capture.stop()
         status = .processing
         guard samples.count > 8000 else { status = .idle; return }  // <0.5초 = 무시 (무반응 — 종료음도 없음)
+        guard !SpeechGate.isSilence(samples: samples) else { status = .idle; return }  // 무음 — 전사 생략
         SoundPlayer.shared.playStop()
         let dict = dictionary.load()
         let terms = dictionary.promptTerms()
@@ -110,8 +111,8 @@ final class AppState: ObservableObject {
                 await MainActor.run {
                     guard let self else { return }
                     self.engine = engine  // 캐시 (다음부터 재사용) — 할당은 MainActor에서만
-                    if refined.isEmpty {
-                        self.status = .idle  // 무음·잡음 — 삽입하지 않음 (스펙)
+                    if refined.isEmpty || SpeechGate.isJunk(refined) {
+                        self.status = .idle  // 무음·잡음·환각 토큰 — 삽입하지 않음 (스펙)
                     } else {
                         TextInserter.insert(refined)
                         self.history.append(refined)
