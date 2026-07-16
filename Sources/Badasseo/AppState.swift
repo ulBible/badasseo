@@ -21,6 +21,13 @@ final class AppState: ObservableObject {
     private(set) lazy var history = HistoryStore(fileURL: support.appendingPathComponent("history.json"))
     private let capture = AudioCapture()
     private var engine: WhisperEngine?
+    private let modifierHoldMonitor = ModifierHoldMonitor()
+
+    /// 두 단축키 경로(우측 ⌘ 홀드 / 사용자 지정 조합) 모두 항상 연결돼 있고,
+    /// 이벤트마다 이 값을 확인해 실행 여부를 가른다 — 설정 변경 시 재구성이 필요 없다.
+    static var hotkeyMode: String {
+        UserDefaults.standard.string(forKey: "hotkeyMode") ?? "rightCommand"
+    }
 
     var modelPath: String {
         support.appendingPathComponent("models/ggml-large-v3-turbo.bin").path
@@ -28,14 +35,40 @@ final class AppState: ObservableObject {
 
     init() {
         recent = history.entries()
-        KeyboardShortcuts.onKeyDown(for: .pushToTalk) { [weak self] in self?.beginRecording() }
-        KeyboardShortcuts.onKeyUp(for: .pushToTalk) { [weak self] in self?.endRecording() }
+        KeyboardShortcuts.onKeyDown(for: .pushToTalk) { [weak self] in
+            guard Self.hotkeyMode == "custom" else { return }
+            self?.beginRecording()
+        }
+        KeyboardShortcuts.onKeyUp(for: .pushToTalk) { [weak self] in
+            guard Self.hotkeyMode == "custom" else { return }
+            self?.endRecording()
+        }
+        modifierHoldMonitor.onBegin = { [weak self] in
+            guard Self.hotkeyMode == "rightCommand" else { return }
+            self?.beginRecording()
+        }
+        modifierHoldMonitor.onEnd = { [weak self] in
+            guard Self.hotkeyMode == "rightCommand" else { return }
+            self?.endRecording()
+        }
+        modifierHoldMonitor.onCancel = { [weak self] in
+            guard Self.hotkeyMode == "rightCommand" else { return }
+            self?.cancelRecording()
+        }
+        modifierHoldMonitor.start()
     }
 
     private func beginRecording() {
         // .error에서도 시작 허용 — 레코딩 재시도가 곧 에러 해제. (에러 문구는 다음 시도까지 메뉴에 유지)
         switch status { case .idle, .error: break; default: return }
         do { try capture.start(); status = .recording } catch { status = .error("마이크 시작 실패") }
+    }
+
+    /// 홀드 중 다른 키가 눌려 조합 단축키로 판정된 경우 — 전사하지 않고 녹음을 폐기.
+    private func cancelRecording() {
+        guard case .recording = status else { return }
+        _ = capture.stop()
+        status = .idle
     }
 
     private func endRecording() {

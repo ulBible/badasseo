@@ -5,15 +5,22 @@ import BadasseoCore
 /// 커스텀 사전 편집 — 편집 즉시 저장, 다음 전사부터 반영.
 struct SettingsView: View {
     @State private var rows: [DictionaryRows.Row] = []
+    @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("음성 입력 단축키").font(.headline)
-                Spacer()
-                KeyboardShortcuts.Recorder("", name: .pushToTalk)
+            Text("음성 입력 단축키").font(.headline)
+            Picker("", selection: $hotkeyMode) {
+                Text("우측 ⌘ 누르고 말하기 (기본)").tag("rightCommand")
+                Text("사용자 지정 조합").tag("custom")
             }
-            Text("누르고 있는 동안 녹음돼요. 변경 즉시 적용.")
+            .pickerStyle(.radioGroup).labelsHidden()
+            if hotkeyMode == "custom" {
+                KeyboardShortcuts.Recorder("조합 키", name: .pushToTalk)
+            }
+            Text(hotkeyMode == "rightCommand"
+                 ? "우측 ⌘만 눌러 유지하는 동안 녹음돼요. 다른 키와 조합하면 녹음되지 않아요."
+                 : "지정한 조합을 누르고 있는 동안 녹음돼요.")
                 .font(.callout).foregroundStyle(.secondary)
             Divider()
             Text("커스텀 사전").font(.headline)
