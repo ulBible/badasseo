@@ -1,4 +1,5 @@
 import SwiftUI
+import KeyboardShortcuts
 import BadasseoCore
 
 /// 커스텀 사전 편집 — 편집 즉시 저장, 다음 전사부터 반영.
@@ -7,6 +8,15 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("음성 입력 단축키").font(.headline)
+                Spacer()
+                KeyboardShortcuts.Recorder("", name: .pushToTalk)
+            }
+            Text("누르고 있는 동안 녹음돼요. 변경 즉시 적용.")
+                .font(.callout).foregroundStyle(.secondary)
+            Divider()
+            Text("커스텀 사전").font(.headline)
             Text("말한 것을 원하는 표기로 바꿔요. 예: \"깃허브\" → \"GitHub\"")
                 .font(.callout).foregroundStyle(.secondary)
             List {
