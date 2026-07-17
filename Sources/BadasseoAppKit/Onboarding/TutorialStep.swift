@@ -16,7 +16,7 @@ struct TutorialStep: View {
             Text(success ? "🎉 완벽해요!" : "해볼까요?").font(.system(size: 19, weight: .heavy))
             if !success {
                 if hotkeyMode == "rightCommand" && !ax {
-                    Text("우측 ⌘ 감지에는 손쉬운 사용 권한이 필요해요.")
+                    Text("\(HoldKey.current.displayName) 감지에는 손쉬운 사용 권한이 필요해요.")
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Button("권한 단계로 돌아가기") { model.step = 3 }

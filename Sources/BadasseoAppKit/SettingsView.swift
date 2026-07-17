@@ -43,7 +43,7 @@ struct GeneralTab: View {
                 KeyboardShortcuts.Recorder("조합 키", name: .pushToTalk)
             }
             Text(hotkeyMode == "rightCommand"
-                 ? "우측 ⌘만 눌러 유지하는 동안 녹음돼요. 다른 키와 조합하면 녹음되지 않아요."
+                 ? "\((HoldKey(rawValue: holdKey) ?? .rightCommand).displayName)만 눌러 유지하는 동안 녹음돼요. 다른 키와 조합하면 녹음되지 않아요."
                  : "지정한 조합을 누르고 있는 동안 녹음돼요.")
                 .font(.callout).foregroundStyle(.secondary)
             Divider()
