@@ -1,14 +1,17 @@
 import AppKit
+import BadasseoCore
 
-/// 우측 ⌘ 홀드로 푸시투토크를 구현하는 모니터.
+/// 선택된 수식키(`HoldKey`) 홀드로 푸시투토크를 구현하는 모니터.
 ///
 /// 전역(global) + 로컬(local) `flagsChanged`/`keyDown` NSEvent 모니터 4개를 설치한다.
 /// 전역 모니터만으로는 앱 자신이 키 이벤트의 대상일 때(예: 설정 창에 포커스가 있을 때)
 /// 이벤트를 못 받으므로 로컬 모니터도 함께 둔다. 로컬 모니터는 관찰만 하고 이벤트를
 /// 그대로 반환해 — 다른 키 처리(텍스트 입력 등)를 가로채지 않는다.
 ///
-/// keyCode 54(우측 ⌘)만 매칭한다. 좌측 ⌘(keyCode 55)는 무시되므로 좌측 ⌘를 홀드해도
-/// 녹음이 시작되지 않는다 — 좌측 ⌘는 macOS 전반의 조합 단축키(⌘C, ⌘Tab 등)에 쓰이기
+/// 이벤트마다 `HoldKey.current`를 읽어 판정한다 — 설정 변경 시 모니터 재시작이
+/// 필요 없다(기존 hotkeyMode per-event 가드와 같은 패턴). 기본값은 우측 ⌘
+/// (keyCode 54); 좌측 ⌘(keyCode 55)는 무시되므로 좌측 ⌘를 홀드해도 녹음이
+/// 시작되지 않는다 — 좌측 ⌘는 macOS 전반의 조합 단축키(⌘C, ⌘Tab 등)에 쓰이기
 /// 때문에, 우측 ⌘를 전용 푸시투토크 키로 비워두는 설계.
 ///
 /// `onCancel` 가드: 홀드 중(`holding == true`) `keyDown`이 오면 — 즉 사용자가 우측 ⌘를
@@ -19,9 +22,11 @@ import AppKit
 /// 평소처럼 시스템/다른 앱으로 전달된다 — 로컬 모니터가 이벤트를 그대로 반환하므로).
 @MainActor
 public final class ModifierHoldMonitor {
-    private let keyCode: UInt16
     private var holding = false
     private var canceled = false
+    /// 홀드 시작 시점의 키를 캡처해 둔다 — 홀드 중 설정이 바뀌는 극단 케이스에도
+    /// 릴리즈 판정은 시작 시점 키 기준으로 일관되게 이뤄진다.
+    private var activeKey: HoldKey?
 
     private var globalFlagsMonitor: Any?
     private var localFlagsMonitor: Any?
@@ -32,10 +37,7 @@ public final class ModifierHoldMonitor {
     public var onEnd: (() -> Void)?
     public var onCancel: (() -> Void)?
 
-    /// - Parameter keyCode: 감시할 키코드. 기본값 54 = 우측 ⌘ (좌측은 55).
-    public init(keyCode: UInt16 = 54) {
-        self.keyCode = keyCode
-    }
+    public init() {}
 
     public func start() {
         globalFlagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
@@ -76,22 +78,25 @@ public final class ModifierHoldMonitor {
         localKeyDownMonitor = nil
     }
 
-    /// 우측 ⌘의 물리적 디바이스 비트 (NX_DEVICERCMDKEYMASK, IOLLEvent.h).
-    /// `NSEvent.ModifierFlags.command`는 좌/우 ⌘ 모두에 서는 OR 비트라서, 좌측 ⌘를
-    /// 쥔 채로 우측 ⌘만 떼도 `.command`가 여전히 켜져 있어 release를 놓친다(→ 고착).
-    /// 디바이스별 비트로 직접 검사해야 우측 ⌘ 하나의 물리 상태만 정확히 추적한다.
-    /// 좌측 ⌘ 비트(NX_DEVICELCMDKEYMASK = 0x0008)와는 독립된 비트라 서로 간섭하지 않는다.
-    private static let rightCommandDeviceMask: UInt = 0x0010
-
+    /// `NSEvent.ModifierFlags.command`처럼 좌/우가 OR로 묶인 상위 플래그만으로는
+    /// 좌측을 쥔 채 우측만 떼는 경우 release를 놓친다(→ 고착). 디바이스별 비트
+    /// (IOLLEvent.h, `HoldKey.deviceMask`)로 직접 검사해야 선택된 키 하나의
+    /// 물리 상태만 정확히 추적한다. fn은 디바이스 비트가 없어 `.function` 플래그로 판정.
     private func handleFlagsChanged(_ event: NSEvent) {
-        guard event.keyCode == keyCode else { return }
-        let rightCmdDown = event.modifierFlags.rawValue & Self.rightCommandDeviceMask != 0
-        if rightCmdDown, !holding {
+        let key = activeKey ?? HoldKey.current
+        guard event.keyCode == key.keyCode else { return }
+        let pressed: Bool
+        if let mask = key.deviceMask { pressed = event.modifierFlags.rawValue & mask != 0 }
+        else { pressed = event.modifierFlags.contains(.function) }   // fn
+
+        if pressed, !holding {
             holding = true
             canceled = false
+            activeKey = key
             onBegin?()
-        } else if !rightCmdDown, holding {
+        } else if !pressed, holding {
             holding = false
+            activeKey = nil
             if canceled {
                 onCancel?()
             } else {

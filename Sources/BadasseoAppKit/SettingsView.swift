@@ -17,6 +17,7 @@ struct SettingsView: View {
 struct GeneralTab: View {
     @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
     @AppStorage("soundFeedback") private var soundFeedback = false
+    @AppStorage(HoldKey.defaultsKey) private var holdKey = HoldKey.rightCommand.rawValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -30,6 +31,13 @@ struct GeneralTab: View {
                 // 등록만으로도 조합 키가 전역 소비되므로, custom일 때만 Carbon 핫키 활성
                 if mode == "custom" { KeyboardShortcuts.enable(.pushToTalk) }
                 else { KeyboardShortcuts.disable(.pushToTalk) }
+            }
+            if hotkeyMode == "rightCommand" {
+                Picker("홀드 키", selection: $holdKey) {
+                    ForEach(HoldKey.allCases, id: \.rawValue) { k in Text(k.displayName).tag(k.rawValue) }
+                }.pickerStyle(.menu).frame(maxWidth: 200)
+                Text("외부 키보드에 우측 ⌘가 없다면 다른 키를 선택하세요.")
+                    .font(.callout).foregroundStyle(.secondary)
             }
             if hotkeyMode == "custom" {
                 KeyboardShortcuts.Recorder("조합 키", name: .pushToTalk)

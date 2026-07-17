@@ -1,4 +1,5 @@
 import SwiftUI
+import BadasseoCore
 import BadasseoEngine
 
 struct TutorialStep: View {
@@ -7,7 +8,7 @@ struct TutorialStep: View {
     @State private var text = ""
     @State private var success = false
 
-    private var keyName: String { hotkeyMode == "rightCommand" ? "우측 ⌘를" : "⌥Space를" }
+    private var keyName: String { hotkeyMode == "rightCommand" ? "\(HoldKey.current.displayName)를" : "⌥Space를" }
 
     var body: some View {
         let ax = TextInserter.hasAccessibility
