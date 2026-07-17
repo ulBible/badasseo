@@ -27,9 +27,9 @@ public enum BuildVariant {
 /// (onboardingDone, hotkeyMode, holdKey, soundFeedback) — 아래서 synchronize(),
 /// (2) HistoryStore/UserDictionary의 JSON — 값이 바뀔 때마다 그 자리에서
 /// 동기적으로 `Data.write(to:)`로 디스크에 쓰기 때문에 종료 시점에 대기 중인
-/// 쓰기가 없음, (3) 모델 다운로드(URLSession) — 종료 시 죽여도 다음 실행에서
-/// resumeData로 이어받으므로 허용 가능한 손실. 즉 _exit(0)이 건너뛰는 것은
-/// "정상 종료해도 문제없는" 것들뿐이다.
+/// 쓰기가 없음, (3) 진행 중이던 모델 다운로드 — 프로세스가 죽으면(정상 exit이든
+/// _exit이든 동일) 처음부터 다시 받게 되지만 재실행 시 자동 진행되므로 허용 가능.
+/// 즉 _exit(0)이 추가로 잃는 것은 없다(정상 종료도 같은 손실).
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         UserDefaults.standard.synchronize()
