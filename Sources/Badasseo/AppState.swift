@@ -9,7 +9,7 @@ extension KeyboardShortcuts.Name {
 
 @MainActor
 final class AppState: ObservableObject {
-    enum Status { case idle, recording, processing, error(String) }
+    enum Status { case idle, recording, processing, noSpeech, error(String) }
     @Published var status: Status = .idle
     @Published var lastResult: String = ""
 
@@ -89,13 +89,21 @@ final class AppState: ObservableObject {
         status = .idle
     }
 
+    private func showNoSpeech() {
+        status = .noSpeech
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            if case .noSpeech = self.status { self.status = .idle }
+        }
+    }
+
     private func endRecording() {
         activeHotkeySource = nil
         guard case .recording = status else { return }
         let samples = capture.stop()
         status = .processing
         guard samples.count > 8000 else { status = .idle; return }  // <0.5초 = 무시 (무반응 — 종료음도 없음)
-        guard !SpeechGate.isSilence(samples: samples) else { status = .idle; return }  // 무음 — 전사 생략
+        guard !SpeechGate.isSilence(samples: samples) else { showNoSpeech(); return }  // 무음 — 전사 생략
         SoundPlayer.shared.playStop()
         let dict = dictionary.load()
         let terms = dictionary.promptTerms()
@@ -116,9 +124,11 @@ final class AppState: ObservableObject {
                     guard let self else { return }
                     self.engine = engine  // 캐시 (다음부터 재사용) — 할당은 MainActor에서만
                     if refined.isEmpty || SpeechGate.isJunk(refined) {
-                        self.status = .idle  // 무음·잡음·환각 토큰 — 삽입하지 않음 (스펙)
+                        self.showNoSpeech()  // 무음·잡음·환각 토큰 — 삽입하지 않음 (스펙)
                     } else {
-                        TextInserter.insert(refined)
+                        if TextInserter.insert(refined) == .copiedOnly {
+                            Notifier.copiedOnly()
+                        }
                         self.history.append(refined)
                         self.lastResult = refined
                         self.status = .idle

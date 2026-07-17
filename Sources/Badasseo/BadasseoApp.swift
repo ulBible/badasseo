@@ -12,6 +12,9 @@ struct BadasseoApp: App {
             if case .error(let msg) = state.status {
                 Text("⚠️ \(msg)")
             }
+            if case .noSpeech = state.status {
+                Text("다시 말해주세요")
+            }
             if !state.lastResult.isEmpty {
                 Text("마지막: \(String(state.lastResult.prefix(30)))")
             }
@@ -36,6 +39,7 @@ struct BadasseoApp: App {
         case .idle: "mic"
         case .recording: "mic.fill"
         case .processing: "hourglass"
+        case .noSpeech: "mic.slash"
         case .error: "exclamationmark.triangle"
         }
     }
