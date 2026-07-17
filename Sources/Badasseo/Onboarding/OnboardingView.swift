@@ -30,17 +30,7 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - 임시 플레이스홀더 (Task 4·5가 교체)
-
-struct DownloadStep: View {
-    @ObservedObject var model: OnboardingModel
-    var body: some View { OnboardingPrimaryButton(title: "다음") { model.next() } }
-}
-
-struct MicStep: View {
-    @ObservedObject var model: OnboardingModel
-    var body: some View { OnboardingPrimaryButton(title: "다음") { model.next() } }
-}
+// MARK: - 임시 플레이스홀더 (Task 5가 교체)
 
 struct HotkeyStep: View {
     @ObservedObject var model: OnboardingModel
