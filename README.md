@@ -37,7 +37,13 @@
 
 ## 설치
 
-[Releases](https://github.com/ulBible/badasseo/releases)에서 최신 `Badasseo-x.y.z.zip`을
+Homebrew 한 줄이면 됩니다:
+
+```bash
+brew install --cask ulBible/tap/badasseo
+```
+
+또는 [Releases](https://github.com/ulBible/badasseo/releases)에서 최신 `Badasseo-x.y.z.zip`을
 내려받아 압축을 풀고 `Badasseo.app`을 `/Applications`로 드래그하세요. macOS 14 이상 필요.
 (앱스토어 배포는 아직 준비 중입니다.)
 

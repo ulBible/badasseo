@@ -39,7 +39,13 @@ needed; the transcription lands on your clipboard and you paste it yourself with
 
 ## Install
 
-Download the latest `Badasseo-x.y.z.zip` from
+One line with Homebrew:
+
+```bash
+brew install --cask ulBible/tap/badasseo
+```
+
+Or download the latest `Badasseo-x.y.z.zip` from
 [Releases](https://github.com/ulBible/badasseo/releases), unzip, and drag
 `Badasseo.app` into `/Applications`. Requires macOS 14+. (Mac App Store
 distribution is still in progress.)
