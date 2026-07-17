@@ -5,7 +5,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            OnboardingTheme.background.ignoresSafeArea()
+            AuroraBackground()
             VStack(spacing: 0) {
                 Group {
                     switch model.step {
@@ -17,15 +17,15 @@ struct OnboardingView: View {
                     }
                 }
                 .frame(maxHeight: .infinity)
-                HStack(spacing: 6) {   // 점 인디케이터
-                    ForEach(0..<5, id: \.self) { i in
-                        Circle().fill(i == model.step ? Color.primary : Color.primary.opacity(0.15))
-                            .frame(width: 6, height: 6)
-                    }
-                }.padding(.bottom, 18)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
+                StepBar(current: model.step)
+                    .padding(.bottom, 18)
             }
+            .animation(.spring(duration: 0.4), value: model.step)
         }
-        .frame(width: 560, height: 480)
+        .frame(width: 560, height: 500)
         .onAppear { model.modelStore.ensureModel() }  // 다운로드는 온보딩 시작과 동시에 병행
     }
 }

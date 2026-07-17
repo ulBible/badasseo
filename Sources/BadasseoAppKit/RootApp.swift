@@ -57,6 +57,7 @@ public struct BadasseoRootApp: App {
             OnboardingView()
         }
         .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
         Settings { SettingsView() }
     }
 

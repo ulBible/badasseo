@@ -8,7 +8,7 @@ struct MicStep: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("🎙️").font(.system(size: 30))
+            IconBadge(symbol: "mic.fill")
             Text("목소리를 들을 수 있게 해주세요").font(.system(size: 19, weight: .heavy))
             Text("녹음은 단축키를 누르는 동안에만.\n소리는 처리 즉시 사라지고, 이 맥 밖으로 나가지 않아요.")
                 .font(.system(size: 12.5)).foregroundStyle(.secondary)
@@ -32,7 +32,8 @@ struct MicStep: View {
                 Text("macOS 권한 창이 떠요").font(.system(size: 11)).foregroundStyle(.tertiary)
             }
         }
-        .padding(40)
+        .glassPanel()
+        .padding(24)
         .onDisappear { poller?.invalidate() }
     }
 

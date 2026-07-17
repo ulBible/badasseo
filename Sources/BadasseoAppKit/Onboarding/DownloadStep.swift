@@ -9,7 +9,7 @@ struct DownloadStep: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("🧠").font(.system(size: 30))
+            IconBadge(symbol: "cpu")
             Text("한국어 인식 모델을 받는 중이에요").font(.system(size: 19, weight: .heavy))
             Text("Whisper large-v3-turbo · 1.6GB · 처음 한 번만")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
@@ -32,6 +32,8 @@ struct DownloadStep: View {
             case .idle: ProgressView().controlSize(.small)
             }
             OnboardingPrimaryButton(title: "다음") { model.next() }
-        }.padding(40)
+        }
+        .glassPanel()
+        .padding(24)
     }
 }

@@ -10,6 +10,7 @@ struct HotkeyStep: View {
 
     var body: some View {
         VStack(spacing: 12) {
+            IconBadge(symbol: "command")
             Text("어떻게 말을 걸까요?").font(.system(size: 19, weight: .heavy))
 
             // 권장: 우측 ⌘ (프리셀렉트)
@@ -38,7 +39,7 @@ struct HotkeyStep: View {
                 }
             }
             .padding(12)
-            .background(.white, in: RoundedRectangle(cornerRadius: 12))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12)
                 .stroke(hotkeyMode == "rightCommand" ? OnboardingTheme.green : .clear, lineWidth: 2))
             .onTapGesture { setMode("rightCommand") }
@@ -54,14 +55,15 @@ struct HotkeyStep: View {
                     .font(.system(size: 11.5)).foregroundStyle(.tertiary)
             }
             .padding(10)
-            .background(.white, in: RoundedRectangle(cornerRadius: 12))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             .onTapGesture { setMode("custom") }
 
             OnboardingPrimaryButton(title: "다음") { model.next() }
             Button("나중에 결정하기 — 설정에서 언제든 바꿀 수 있어요") { model.next() }
                 .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
         }
-        .padding(32)
+        .glassPanel()
+        .padding(24)
         .onDisappear { poller?.invalidate() }
     }
 

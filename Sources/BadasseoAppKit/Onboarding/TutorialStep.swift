@@ -21,6 +21,7 @@ struct TutorialStep: View {
                     Button("권한 단계로 돌아가기") { model.step = 3 }
                         .buttonStyle(.borderedProminent).tint(OnboardingTheme.green).controlSize(.small)
                 } else {
+                    ListeningWave()
                     Text("아래 칸에 커서를 두고, \(keyName) 누른 채\n\"안녕하세요 받아써\"라고 말해보세요")
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center).lineSpacing(4)
@@ -30,7 +31,7 @@ struct TutorialStep: View {
                 .font(.system(size: 14))
                 .frame(maxWidth: 320, minHeight: 64, maxHeight: 64)
                 .padding(8)
-                .background(.white, in: RoundedRectangle(cornerRadius: 10))
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(OnboardingTheme.green, style: StrokeStyle(lineWidth: 2, dash: success ? [] : [5])))
                 .onChange(of: text) { _, new in
@@ -46,6 +47,8 @@ struct TutorialStep: View {
                 Button("건너뛰기") { model.finish() }
                     .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
             }
-        }.padding(36)
+        }
+        .glassPanel()
+        .padding(24)
     }
 }
