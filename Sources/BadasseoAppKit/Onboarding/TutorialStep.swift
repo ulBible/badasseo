@@ -39,7 +39,7 @@ struct TutorialStep: View {
                         .buttonStyle(.borderedProminent).tint(OnboardingTheme.green).controlSize(.small)
                 } else {
                     ListeningWave()
-                    Text("아래 칸에 커서를 두고, \(keyName) 누른 채\n\"안녕하세요 받아써\"라고 말해보세요")
+                    Text("아래 칸에 커서를 두고, \(keyName) 누른 채\n\"오늘 날씨가 참 좋네요\"라고 말해보세요")
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center).lineSpacing(4)
                 }
