@@ -58,8 +58,7 @@ rm -rf "${APP_BUNDLE}"
 mkdir -p "${APP_BUNDLE}/Contents/MacOS" "${APP_BUNDLE}/Contents/Resources"
 cp "${BUILD_DIR}/${TARGET}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
 cp "Resources/Info-AppStore.plist" "${APP_BUNDLE}/Contents/Info.plist"
-# TODO(plan-5): Badasseo has no AppIcon.icns yet (bundle.sh doesn't ship one
-# either) — add `cp "Resources/AppIcon.icns" ...` here once one exists.
+cp "Resources/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
 
 # Package resource bundles (BadasseoAppKit's sound-*.wav etc.), found via
 # Bundle.main.resourceURL at runtime — same logic as scripts/bundle.sh.
