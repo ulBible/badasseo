@@ -2,13 +2,24 @@ import SwiftUI
 import BadasseoCore
 import BadasseoEngine
 
-@main
-struct BadasseoApp: App {
+/// GitHub / Mac App Store 빌드 변형 구분. 현재는 두 변형 동일 동작(분기 내용 없음) —
+/// vClips 재심사 결과가 나오면 카피·프리셀렉트 분기를 여기 채운다.
+public enum BuildVariant {
+    case github
+    case appStore
+}
+
+/// 두 실행 타깃(Badasseo/BadasseoAppStore)의 공용 앱 진입점. 각 타깃의 얇은
+/// main.swift가 `BadasseoRootApp.main()`을 호출한다(SwiftUI `App` 프로토콜의
+/// 기본 구현이 static main()을 제공).
+public struct BadasseoRootApp: App {
+    public init() {}
+
     @StateObject private var state = AppState()
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
 
-    var body: some Scene {
+    public var body: some Scene {
         MenuBarExtra {
             if case .error(let msg) = state.status {
                 Text("⚠️ \(msg)")

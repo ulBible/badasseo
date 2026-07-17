@@ -5,7 +5,10 @@ let package = Package(
     name: "Badasseo",
     platforms: [.macOS(.v14)],
     products: [
+        // GitHub-release variant.
         .executable(name: "Badasseo", targets: ["Badasseo"]),
+        // Mac App Store (sandboxed) variant — see Resources/Badasseo-AppStore.entitlements.
+        .executable(name: "BadasseoAppStore", targets: ["BadasseoAppStore"]),
         .executable(name: "badasseo-cli", targets: ["badasseo-cli"]),
     ],
     dependencies: [
@@ -39,15 +42,17 @@ let package = Package(
             ],
             path: "Sources/BadasseoEngine"
         ),
-        .executableTarget(
-            name: "Badasseo",
+        .target(
+            name: "BadasseoAppKit",
             dependencies: [
                 "BadasseoCore", "BadasseoEngine",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
-            path: "Sources/Badasseo",
-            resources: [.process("Resources")]
+            path: "Sources/BadasseoAppKit",
+            resources: [.process("Resources")]   // 사운드 wav 이동 포함
         ),
+        .executableTarget(name: "Badasseo", dependencies: ["BadasseoAppKit"], path: "Sources/Badasseo"),
+        .executableTarget(name: "BadasseoAppStore", dependencies: ["BadasseoAppKit"], path: "Sources/BadasseoAppStore"),
         .executableTarget(
             name: "badasseo-cli",
             dependencies: ["BadasseoCore", "BadasseoEngine"],

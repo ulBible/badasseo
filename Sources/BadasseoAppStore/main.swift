@@ -1,0 +1,3 @@
+import BadasseoAppKit
+
+BadasseoRootApp.main()
