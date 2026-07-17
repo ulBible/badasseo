@@ -13,4 +13,7 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSMicrophoneUsageDescription</key><string>말한 내용을 텍스트로 바꾸기 위해 마이크를 사용해요. 음성은 이 맥을 벗어나지 않아요.</string>
+    <key>SUFeedURL</key><string>https://github.com/ulBible/badasseo/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key><string>8lnrMM16cLr17aVeuDUcalA1zgYV6q1ICfxZ+Eq9Pl0=</string>
+    <key>SUEnableAutomaticChecks</key><true/>
 </dict></plist>

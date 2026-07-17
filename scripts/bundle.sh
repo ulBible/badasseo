@@ -94,6 +94,23 @@ cp -R "${WHISPER_FRAMEWORK}" "${APP_BUNDLE}/Contents/Frameworks/"
 install_name_tool -add_rpath "@executable_path/../Frameworks" \
   "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
 
+# Sparkle is a dynamic framework (binary xcframework artifact), linked only
+# into the Badasseo (GitHub) target — see Package.swift. Embed it the same
+# way as whisper.framework above; without this the GitHub build fails to
+# launch (dyld: Library not loaded: @rpath/Sparkle.framework). The App Store
+# build (scripts/appstore.sh, scheme BadasseoAppStore) never links Sparkle,
+# so no Sparkle.framework exists in ITS build products to copy — the
+# exclusion is automatic, not something appstore.sh has to filter out.
+SPARKLE_FRAMEWORK=""
+for candidate in "${BUILD_DIR}/Sparkle.framework" "${BUILD_DIR}/PackageFrameworks/Sparkle.framework"; do
+  [[ -d "${candidate}" ]] && SPARKLE_FRAMEWORK="${candidate}" && break
+done
+if [[ -z "${SPARKLE_FRAMEWORK}" ]]; then
+  echo "error: Sparkle.framework not found in ${BUILD_DIR} — auto-updates would crash the app at launch." >&2
+  exit 1
+fi
+cp -R "${SPARKLE_FRAMEWORK}" "${APP_BUNDLE}/Contents/Frameworks/"
+
 if [[ "${SIGN_IDENTITY}" == "-" ]]; then
   echo "==> Ad-hoc code signing (no stable identity found — Accessibility grant will reset each build)"
 else

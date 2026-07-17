@@ -26,6 +26,7 @@ let package = Package(
         // confirmed to link Metal.framework and contain compiled Metal
         // backend symbols.
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.0.0"),
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.0"),
     ],
     targets: [
         .target(name: "BadasseoCore", path: "Sources/BadasseoCore"),
@@ -51,7 +52,18 @@ let package = Package(
             path: "Sources/BadasseoAppKit",
             resources: [.process("Resources")]   // 사운드 wav 이동 포함
         ),
-        .executableTarget(name: "Badasseo", dependencies: ["BadasseoAppKit"], path: "Sources/Badasseo"),
+        // GitHub-release variant: links Sparkle for auto-updates. The App
+        // Store variant below intentionally does not — the store owns
+        // updates there, and BadasseoAppKit stays shared by both so the
+        // updater hook is injected via a var in RootApp.swift instead.
+        .executableTarget(
+            name: "Badasseo",
+            dependencies: [
+                "BadasseoAppKit",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
+            path: "Sources/Badasseo"
+        ),
         .executableTarget(name: "BadasseoAppStore", dependencies: ["BadasseoAppKit"], path: "Sources/BadasseoAppStore"),
         .executableTarget(
             name: "badasseo-cli",

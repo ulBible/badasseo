@@ -37,7 +37,14 @@
 
 ## 설치
 
-아직 정식 배포(DMG·앱스토어)는 준비 중입니다. 지금은 소스에서 직접 빌드합니다.
+[Releases](https://github.com/ulBible/badasseo/releases)에서 최신 `Badasseo-x.y.z.zip`을
+내려받아 압축을 풀고 `Badasseo.app`을 `/Applications`로 드래그하세요. macOS 14 이상 필요.
+(앱스토어 배포는 아직 준비 중입니다.)
+
+받아써는 스스로 최신 상태를 유지합니다 — 백그라운드에서 새 릴리스를 확인하고(Sparkle)
+있으면 알려줍니다. 메뉴바 아이콘 → **업데이트 확인…**으로 수동 확인도 가능합니다.
+
+### 소스에서 빌드
 
 ```bash
 git clone https://github.com/ulBible/badasseo.git

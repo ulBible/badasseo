@@ -39,7 +39,16 @@ needed; the transcription lands on your clipboard and you paste it yourself with
 
 ## Install
 
-Packaged releases (DMG, Mac App Store) are still in progress. For now, build from source:
+Download the latest `Badasseo-x.y.z.zip` from
+[Releases](https://github.com/ulBible/badasseo/releases), unzip, and drag
+`Badasseo.app` into `/Applications`. Requires macOS 14+. (Mac App Store
+distribution is still in progress.)
+
+Badasseo keeps itself up to date: it checks the latest release in the
+background (Sparkle) and offers new versions as they ship. You can also check
+manually via the menu-bar icon → **Check for Updates…**.
+
+### Building from source
 
 ```bash
 git clone https://github.com/ulBible/badasseo.git

@@ -37,6 +37,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// GitHub 빌드(Badasseo 타깃)의 main.swift가 `BadasseoRootApp.main()` 호출 전에
+/// Sparkle 업데이트 훅을 여기 주입한다. Mac App Store 빌드(BadasseoAppStore)는
+/// Sparkle을 링크하지 않으므로(Package.swift 참고) 이 값을 nil로 남겨 메뉴 항목이
+/// 숨겨진다 — vClips의 `checkForUpdates: (() -> Void)?` 파라미터와 같은 역할이지만,
+/// BadasseoRootApp은 두 타깃이 공유하는 `App`을 `static main()`으로 실행하므로
+/// (init 파라미터를 넘길 방법이 없음) 생성자 대신 전역 변수로 주입한다. main.swift가
+/// 앱 시작 전 메인 스레드에서 딱 한 번만 쓰고, 이후로는 읽기만 하므로 안전하다
+/// (Swift 6 strict concurrency 검사기가 이를 증명하지 못할 뿐이라 unsafe로 표시).
+nonisolated(unsafe) public var badasseoCheckForUpdates: (() -> Void)?
+
 /// 두 실행 타깃(Badasseo/BadasseoAppStore)의 공용 앱 진입점. 각 타깃의 얇은
 /// main.swift가 `BadasseoRootApp.main()`을 호출한다(SwiftUI `App` 프로토콜의
 /// 기본 구현이 static main()을 제공).
@@ -71,6 +81,14 @@ public struct BadasseoRootApp: App {
             Button("온보딩 다시 보기") {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "onboarding")
+            }
+            if let checkForUpdates = badasseoCheckForUpdates {
+                Button("업데이트 확인…") {
+                    // 메뉴바 전용(LSUIElement) 앱은 비활성 상태라 업데이트 창이
+                    // 뒤에 열림 — 설정/온보딩과 같은 이유로 먼저 앱을 활성화.
+                    NSApp.activate(ignoringOtherApps: true)
+                    checkForUpdates()
+                }
             }
             Button("받아써 정보") {
                 AboutPanel.show(showsSupportLink: Bundle.main.bundleIdentifier != "app.badasseo.mas")
