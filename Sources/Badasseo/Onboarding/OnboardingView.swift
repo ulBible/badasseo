@@ -29,15 +29,3 @@ struct OnboardingView: View {
         .onAppear { model.modelStore.ensureModel() }  // 다운로드는 온보딩 시작과 동시에 병행
     }
 }
-
-// MARK: - 임시 플레이스홀더 (Task 5가 교체)
-
-struct HotkeyStep: View {
-    @ObservedObject var model: OnboardingModel
-    var body: some View { OnboardingPrimaryButton(title: "다음") { model.next() } }
-}
-
-struct TutorialStep: View {
-    @ObservedObject var model: OnboardingModel
-    var body: some View { OnboardingPrimaryButton(title: "다음") { model.next() } }
-}

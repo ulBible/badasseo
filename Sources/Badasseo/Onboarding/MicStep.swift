@@ -4,6 +4,7 @@ import AVFoundation
 struct MicStep: View {
     @ObservedObject var model: OnboardingModel
     @State private var granted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    @State private var poller: Timer?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -20,13 +21,30 @@ struct MicStep: View {
                     AVCaptureDevice.requestAccess(for: .audio) { ok in
                         Task { @MainActor in
                             granted = ok
-                            if !ok { NSWorkspace.shared.open(URL(string:
-                                "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!) }
+                            if !ok {
+                                NSWorkspace.shared.open(URL(string:
+                                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
+                                startPolling()
+                            }
                         }
                     }
                 }
                 Text("macOS 권한 창이 떠요").font(.system(size: 11)).foregroundStyle(.tertiary)
             }
-        }.padding(40)
+        }
+        .padding(40)
+        .onDisappear { poller?.invalidate() }
+    }
+
+    private func startPolling() {
+        poller?.invalidate()
+        poller = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            Task { @MainActor in
+                if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
+                    granted = true
+                    poller?.invalidate()
+                }
+            }
+        }
     }
 }
