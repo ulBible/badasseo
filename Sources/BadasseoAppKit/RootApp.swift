@@ -96,13 +96,19 @@ public struct BadasseoRootApp: App {
             Divider()
             Button("종료") { NSApp.terminate(nil) }
         } label: {
-            Image(systemName: iconName)
-                .onAppear {
-                    if !OnboardingModel.isDone {
-                        NSApp.activate(ignoringOtherApps: true)
-                        openWindow(id: "onboarding")
-                    }
+            Group {
+                if case .idle = state.status, let mark = Self.menuBarMark {
+                    Image(nsImage: mark)
+                } else {
+                    Image(systemName: iconName)
                 }
+            }
+            .onAppear {
+                if !OnboardingModel.isDone {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "onboarding")
+                }
+            }
         }
         .commands {
             // MenuBarExtra 항목의 keyboardShortcut은 상태바 메뉴 안에서만 표시될 뿐
@@ -138,4 +144,23 @@ public struct BadasseoRootApp: App {
         case .error: "exclamationmark.triangle"
         }
     }
+
+    /// 평상시(idle) 메뉴바 아이콘 — 앱 아이콘과 같은 심볼(마이크+3줄)의 템플릿판.
+    /// 1x/2x PNG를 한 NSImage로 합치고 isTemplate으로 라이트/다크 자동 틴트.
+    /// 상태 표시(녹음·처리·오류)는 의미 전달이 우선이라 SF Symbols를 유지한다.
+    static let menuBarMark: NSImage? = {
+        let img = NSImage(size: NSSize(width: 22, height: 18))
+        var loaded = false
+        for name in ["menubar-icon", "menubar-icon@2x"] {
+            guard let url = Bundle.module.url(forResource: name, withExtension: "png"),
+                  let rep = NSBitmapImageRep(data: (try? Data(contentsOf: url)) ?? Data())
+            else { continue }
+            rep.size = NSSize(width: 22, height: 18)
+            img.addRepresentation(rep)
+            loaded = true
+        }
+        guard loaded else { return nil }
+        img.isTemplate = true
+        return img
+    }()
 }

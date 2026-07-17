@@ -31,47 +31,45 @@ ctx.drawLinearGradient(hi, start: CGPoint(x: bg.midX, y: bg.maxY),
                        end: CGPoint(x: bg.midX, y: bg.midY), options: [])
 ctx.restoreGState()
 
-// 심볼(흰색): 마이크 + 텍스트 라인. 중앙 정렬 좌표(아이콘 논리 좌표)
-let cx = S/2
+// 심볼(흰색): 마이크(좌) + 텍스트 라인(우) 가로 배치, 그룹 전체를 중앙 정렬
+let cy = S/2
 ctx.setFillColor(.white)
 ctx.setStrokeColor(.white)
 ctx.setLineCap(.round)
 
-// ── 상단 구역: 마이크 (헤드 + 받침 + 스탠드) — 원래 형태 그대로 ──
-let micW: CGFloat = S*0.125, micH: CGFloat = S*0.205
-let micHeadTop = S*0.82                             // 마이크 뭉치를 위쪽에 배치
-let micBody = CGRect(x: cx - micW/2, y: micHeadTop - micH, width: micW, height: micH)
+// ── 좌측: 마이크 (헤드 + 받침 아크 + 스탠드) ──
+let micCx = S*0.345                                 // 마이크 축
+let micW: CGFloat = S*0.15, micH: CGFloat = S*0.27  // 헤드를 더 길고 크게
+let micHeadTop = cy + S*0.205                       // 마이크 뭉치를 수직 중앙에
+let micBody = CGRect(x: micCx - micW/2, y: micHeadTop - micH, width: micW, height: micH)
 ctx.addPath(CGPath(roundedRect: micBody, cornerWidth: micW/2, cornerHeight: micW/2, transform: nil))
 ctx.fillPath()
 
-// 받침 아크(U자) — 헤드를 감싸는 원래 비율
-let arcR = S*0.115
+// 받침 아크(U자)
+let arcR = S*0.14
 let arcCenterY = micHeadTop - micH*0.72
-ctx.setLineWidth(S*0.036)
-ctx.addArc(center: CGPoint(x: cx, y: arcCenterY), radius: arcR,
+ctx.setLineWidth(S*0.042)
+ctx.addArc(center: CGPoint(x: micCx, y: arcCenterY), radius: arcR,
            startAngle: .pi, endAngle: 2 * .pi, clockwise: false)
 ctx.strokePath()
 let arcBottom = arcCenterY - arcR                  // 마이크 최하단
 // 스탠드(짧게)
-ctx.move(to: CGPoint(x: cx, y: arcBottom)); ctx.addLine(to: CGPoint(x: cx, y: arcBottom - S*0.04))
+ctx.move(to: CGPoint(x: micCx, y: arcBottom)); ctx.addLine(to: CGPoint(x: micCx, y: arcBottom - S*0.05))
 ctx.strokePath()
 
-// ── 하단 구역: 텍스트 입력 (긴 줄 + 짧은 줄 + 커서) ──
-// 마이크 최하단(스탠드 포함)과 충분한 간격을 두고 배치
-let gap = S*0.11                                   // ← 마이크 뭉치 ↔ 텍스트 뭉치 간격만 넓게
-let row1 = (arcBottom - S*0.04) - gap              // 긴 줄
-let row2 = row1 - S*0.075                           // 짧은 줄
-let leftX = cx - S*0.155
-ctx.setLineWidth(S*0.034)
-ctx.move(to: CGPoint(x: leftX, y: row1)); ctx.addLine(to: CGPoint(x: cx + S*0.11, y: row1))
-ctx.strokePath()
-let shortEnd = cx - S*0.02
-ctx.move(to: CGPoint(x: leftX, y: row2)); ctx.addLine(to: CGPoint(x: shortEnd, y: row2))
-ctx.strokePath()
-// 커서: 짧은 줄 바로 뒤
-let cur = CGRect(x: shortEnd + S*0.026, y: row2 - S*0.036, width: S*0.026, height: S*0.082)
-ctx.addPath(CGPath(roundedRect: cur, cornerWidth: S*0.011, cornerHeight: S*0.011, transform: nil))
-ctx.fillPath()
+// ── 우측: 텍스트 입력 (긴 줄 + 짧은 줄 + 커서) — 마이크 헤드 높이에 맞춤 ──
+let textX = micCx + arcR + S*0.075                 // 아크 우측 끝에서 간격을 두고 시작
+// 마이크 뭉치 전체(헤드 상단~스탠드 하단)의 세로 중앙에 텍스트 블록을 맞춘다
+let micBottom = arcBottom - S*0.05
+let rowMid = (micHeadTop + micBottom) / 2
+// 3줄, 오른쪽 끝이 들쭉날쭉한 문단 느낌 (커서 없음)
+ctx.setLineWidth(S*0.036)
+let rowGap = S*0.092
+for (i, len) in [S*0.21, S*0.165, S*0.115].enumerated() {
+    let y = rowMid + rowGap - CGFloat(i) * rowGap
+    ctx.move(to: CGPoint(x: textX, y: y)); ctx.addLine(to: CGPoint(x: textX + len, y: y))
+    ctx.strokePath()
+}
 
 img.unlockFocus()
 
