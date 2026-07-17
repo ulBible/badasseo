@@ -1,12 +1,17 @@
 import AppKit
+import ApplicationServices
 import BadasseoCore
 
 /// 선택된 수식키(`HoldKey`) 홀드로 푸시투토크를 구현하는 모니터.
 ///
-/// 전역(global) + 로컬(local) `flagsChanged`/`keyDown` NSEvent 모니터 4개를 설치한다.
-/// 전역 모니터만으로는 앱 자신이 키 이벤트의 대상일 때(예: 설정 창에 포커스가 있을 때)
-/// 이벤트를 못 받으므로 로컬 모니터도 함께 둔다. 로컬 모니터는 관찰만 하고 이벤트를
-/// 그대로 반환해 — 다른 키 처리(텍스트 입력 등)를 가로채지 않는다.
+/// 로컬(local) + 전역(global) `flagsChanged`/`keyDown` NSEvent 모니터를 각각 둔다.
+/// 로컬 모니터는 권한 없이 동작하며(자기 앱이 포커스일 때만 이벤트 수신) `start()`에서
+/// 즉시 설치된다 — 온보딩 튜토리얼이 이걸로 커버된다. 전역 모니터는 macOS 손쉬운 사용
+/// (Accessibility) 권한이 있어야 이벤트가 오는데, 그 모니터를 "설치"하는 행위 자체가
+/// macOS로 하여금 권한 프롬프트/설정 유도를 띄우게 만든다 — 그래서 사용자가 실제로
+/// 권한을 부여하기 전에는(`AXIsProcessTrusted()`) 설치하지 않는다
+/// (`installGlobalMonitorsIfNeeded()`). 로컬 모니터는 관찰만 하고 이벤트를 그대로
+/// 반환해 — 다른 키 처리(텍스트 입력 등)를 가로채지 않는다.
 ///
 /// 이벤트마다 `HoldKey.current`를 읽어 판정한다 — 설정 변경 시 모니터 재시작이
 /// 필요 없다(기존 hotkeyMode per-event 가드와 같은 패턴). 기본값은 우측 ⌘
@@ -39,20 +44,31 @@ public final class ModifierHoldMonitor {
 
     public init() {}
 
+    /// 로컬 모니터만 설치 — 권한이 필요 없고, macOS의 권한 프롬프트/설정 유도를
+    /// 트리거하지 않는다. 앱 실행 시 무조건 호출해도 안전(옵트인 원칙 유지).
     public func start() {
-        globalFlagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            Self.dispatchToMain { self?.handleFlagsChanged(event) }
-        }
         localFlagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             Self.dispatchToMain { self?.handleFlagsChanged(event) }
             return event
         }
-        globalKeyDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            Self.dispatchToMain { self?.handleKeyDown(event) }
-        }
         localKeyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             Self.dispatchToMain { self?.handleKeyDown(event) }
             return event
+        }
+    }
+
+    /// 손쉬운 사용 권한이 이미 부여된 경우에만 전역 모니터 2개를 설치한다 —
+    /// 그 전에는 호출해도 아무 일도 안 일어나(권한 프롬프트 없음), 사용자가
+    /// 온보딩에서 명시적으로 권한을 켠 뒤(또는 이미 켜져 있는 채 앱을 실행한 뒤)에만
+    /// 전역 감시가 붙는다. 이미 설치돼 있으면 중복 설치하지 않는다(no-op 가드).
+    public func installGlobalMonitorsIfNeeded() {
+        guard AXIsProcessTrusted() else { return }
+        guard globalFlagsMonitor == nil, globalKeyDownMonitor == nil else { return }
+        globalFlagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            Self.dispatchToMain { self?.handleFlagsChanged(event) }
+        }
+        globalKeyDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            Self.dispatchToMain { self?.handleKeyDown(event) }
         }
     }
 

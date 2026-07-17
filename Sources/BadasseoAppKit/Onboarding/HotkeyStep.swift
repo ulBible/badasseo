@@ -82,6 +82,7 @@ struct HotkeyStep: View {
                     axTrusted = true
                     poller?.invalidate()
                     OnboardingModel.bringToFront()  // 시스템 설정에서 돌아온 뒤 창을 앞으로
+                    NotificationCenter.default.post(name: .badasseoAXGranted, object: nil)
                 }
             }
         }

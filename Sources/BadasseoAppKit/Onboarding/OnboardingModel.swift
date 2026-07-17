@@ -16,11 +16,24 @@ final class OnboardingModel: ObservableObject {
     func skip() { finish() }
 
     /// 권한 대화상자 응답 등으로 뒤로 밀린 온보딩 창을 다시 앞으로 (LSUIElement 앱).
+    ///
+    /// macOS 14+에서는 TCC 다이얼로그가 닫히며 포커스를 되돌리는 시점이 우리 activate
+    /// 호출 뒤에 오는 경쟁이 있어(협조적 활성화), 1회 호출로는 창이 다시 뒤로 밀릴 수
+    /// 있다. 즉시 1회 + 지연 2회(총 3회) 재시도하고, 매번 `orderFrontRegardless()`도
+    /// 함께 호출해 활성화 자체가 거부되는 경우에도 창만은 앞으로 오게 한다.
     static func bringToFront() {
-        NSApp.activate(ignoringOtherApps: true)
-        let win = NSApp.windows.first { $0.identifier?.rawValue == "onboarding" }
-            ?? NSApp.windows.first { $0.title == "받아써 시작하기" }
-        win?.makeKeyAndOrderFront(nil)
+        func attempt() {
+            NSApp.activate(ignoringOtherApps: true)
+            if let w = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" })
+                ?? NSApp.windows.first(where: { $0.title == "받아써 시작하기" }) {
+                w.makeKeyAndOrderFront(nil)
+                w.orderFrontRegardless()   // 활성화가 거부돼도 창은 앞으로
+            }
+        }
+        attempt()
+        // TCC 다이얼로그 해제가 우리 호출 뒤에 포커스를 되돌리는 경쟁 — 늦게 두 번 더.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { attempt() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { attempt() }
     }
     func finish() {
         UserDefaults.standard.set(true, forKey: Self.doneKey)

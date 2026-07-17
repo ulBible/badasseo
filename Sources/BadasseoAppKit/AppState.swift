@@ -63,6 +63,17 @@ final class AppState: ObservableObject {
             self?.cancelRecording()
         }
         modifierHoldMonitor.start()
+        // 이미 손쉬운 사용 권한이 있으면(과거 부여했거나 tccutil 리셋 안 된 경우) 즉시
+        // 전역 모니터까지 가동 — 권한이 없으면 여기서는 아무 일도 안 일어난다(옵트인).
+        modifierHoldMonitor.installGlobalMonitorsIfNeeded()
+        // 온보딩에서 방금 권한을 부여한 경로(HotkeyStep의 AX 폴러)를 연결.
+        NotificationCenter.default.addObserver(forName: .badasseoAXGranted, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.modifierHoldMonitor.installGlobalMonitorsIfNeeded() }
+        }
+        // 설정 앱에서 수동으로 권한을 켜고 돌아온 경우(온보딩 폴러를 거치지 않는 경로)도 커버.
+        NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.modifierHoldMonitor.installGlobalMonitorsIfNeeded() }
+        }
         // custom 모드가 아니면 Carbon 핫키 등록을 비활성 — 등록만으로도 ⌥Space가
         // 시스템 전역에서 소비되어(Alfred 등과 충돌) "무간섭" 원칙을 깬다.
         // 모드 전환 시 GeneralTab이 enable/disable을 토글한다.
@@ -72,6 +83,13 @@ final class AppState: ObservableObject {
     private func beginRecording() {
         // .error에서도 시작 허용 — 레코딩 재시도가 곧 에러 해제. (에러 문구는 다음 시도까지 메뉴에 유지)
         switch status { case .idle, .error, .noSpeech: break; default: return }
+        // 모델이 준비되기 전에는 녹음 자체를 시작하지 않는다 (마이크·효과음 비활성) —
+        // 다운로드 중 단축키를 눌러도 마이크가 켜지거나 시작음이 나지 않아야 한다.
+        guard let size = try? FileManager.default.attributesOfItem(atPath: modelPath)[.size] as? Int64,
+              size == ModelInfo.byteSize else {
+            status = .error("모델 다운로드가 끝나면 사용할 수 있어요")
+            return
+        }
         do {
             try capture.start()
             status = .recording
@@ -151,4 +169,7 @@ final class AppState: ObservableObject {
 extension Notification.Name {
     /// 전사 완료 브로드캐스트 — 온보딩 튜토리얼이 붙여넣기 경로와 무관하게 결과를 표시하는 데 사용.
     static let badasseoDidTranscribe = Notification.Name("badasseoDidTranscribe")
+    /// 온보딩 HotkeyStep의 AX 폴러가 손쉬운 사용 권한 획득을 감지한 시점에 브로드캐스트 —
+    /// AppState가 구독해 전역 모니터를 그 자리에서 가동한다(옵트인 완료 즉시 풀가동).
+    static let badasseoAXGranted = Notification.Name("badasseoAXGranted")
 }
