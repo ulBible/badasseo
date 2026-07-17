@@ -12,6 +12,17 @@
   말하면, 받아써. 맥에서 키보드 대신 말로 — 전 과정이 내 맥 안에서.
 </p>
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
+  <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-orange" alt="Apple Silicon">
+  <a href="https://github.com/sponsors/ulBible"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4" alt="Sponsor"></a>
+</p>
+
+<p align="center">
+  <img src="docs/images/onboarding.png" width="560" alt="받아써 온보딩 — 말하면, 받아써. 목소리에서 텍스트까지 전 과정이 맥 안에서">
+</p>
+
 받아써는 macOS 메뉴바에 상주하는 한국어 음성입력 앱입니다. 단축키를 누른 채 말하면
 로컬 Whisper가 전사해 커서 위치에 그대로 입력합니다. 서버도, 계정도, 구독도 없습니다.
 
@@ -34,6 +45,10 @@
 
 손쉬운 사용 권한을 허용하고 싶지 않다면 ⌥Space 모드를 선택하세요 — 권한 없이,
 전사 결과가 클립보드에 담기고 ⌘V로 직접 붙여넣습니다.
+
+<p align="center">
+  <img src="docs/images/settings.png" width="560" alt="받아써 설정 — 음성 입력 단축키(우측 ⌘ 홀드 키 선택)와 사운드">
+</p>
 
 ## 설치
 

@@ -12,6 +12,17 @@
   Say it, and it's written. Speak instead of type on your Mac — entirely on your Mac.
 </p>
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
+  <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-orange" alt="Apple Silicon">
+  <a href="https://github.com/sponsors/ulBible"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4" alt="Sponsor"></a>
+</p>
+
+<p align="center">
+  <img src="docs/images/onboarding.png" width="560" alt="Badasseo onboarding — say it, and it's written; voice to text entirely on your Mac">
+</p>
+
 Badasseo is a macOS menu-bar app for Korean voice input. Hold a shortcut and speak;
 a local Whisper model transcribes what you said and inserts it right at your cursor.
 No server, no account, no subscription.
@@ -36,6 +47,10 @@ No server, no account, no subscription.
 
 If you'd rather not grant Accessibility access, use ⌥Space mode instead — no permission
 needed; the transcription lands on your clipboard and you paste it yourself with ⌘V.
+
+<p align="center">
+  <img src="docs/images/settings.png" width="560" alt="Badasseo settings — voice input shortcut (right ⌘ hold key picker) and sounds">
+</p>
 
 ## Install
 
