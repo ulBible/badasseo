@@ -9,3 +9,4 @@ models/
 bench/.venv/
 bench/blind.md
 bench/blind_key.json
+.superpowers/
