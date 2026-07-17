@@ -51,7 +51,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// main.swift가 `BadasseoRootApp.main()`을 호출한다(SwiftUI `App` 프로토콜의
 /// 기본 구현이 static main()을 제공).
 public struct BadasseoRootApp: App {
-    public init() {}
+    public init() {
+        // ggml Metal residency sets를 끈다 — 이 서브시스템이 두 가지 실사고의 근원:
+        // ① 종료 시 정적 소멸자 abort(ggml_metal_rsets_free → _exit 우회 중)
+        // ② 로드 중 residency 거부 시 무한 재시도 루프가 시도마다 누수(실측 16GB, 전사 영구 멈춤).
+        // 짧은 발화 전사에서 residency 최적화 이득은 무시 가능한 수준.
+        setenv("GGML_METAL_NO_RESIDENCY", "1", 1)
+    }
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var state = AppState()

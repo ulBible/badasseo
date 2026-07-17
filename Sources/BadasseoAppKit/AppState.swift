@@ -20,6 +20,10 @@ final class AppState: ObservableObject {
     private(set) lazy var history = HistoryStore.standard
     private let capture = AudioCapture()
     private var engine: WhisperEngine?
+    /// 진행 중인 엔진 로드(single-flight). 로드가 끝나기 전에 받아쓰기를 다시 시도해도
+    /// 이 Task를 공유한다 — 시도마다 1.6GB 엔진을 새로 만들면 GPU 메모리가 고갈되어
+    /// Metal residency 요청이 무한 재시도에 빠진다(실측: 재시도 9회 = 16GB, 전사 영구 멈춤).
+    private var engineLoad: Task<WhisperEngine?, Never>?
     private let modifierHoldMonitor = ModifierHoldMonitor()
     private var noSpeechGeneration = 0
 
@@ -130,12 +134,26 @@ final class AppState: ObservableObject {
         let terms = dictionary.promptTerms()
         // 모델 로드(1.6GB whisper_init)는 반드시 메인 스레드 밖에서 — @MainActor 메서드로
         // 감싸면 detached여도 로드가 메인으로 홉해서 UI가 얼어붙는다.
-        let existing = engine
+        // 로드는 single-flight: 이미 진행 중이면 그 Task의 결과를 기다린다(주석 참고: engineLoad).
         let modelPath = self.modelPath
+        let load: Task<WhisperEngine?, Never>
+        if let engine {
+            load = Task { engine }
+        } else if let inFlight = engineLoad {
+            load = inFlight
+        } else {
+            load = Task.detached(priority: .userInitiated) {
+                try? WhisperEngine(modelPath: modelPath)
+            }
+            engineLoad = load
+        }
         Task.detached(priority: .userInitiated) { [weak self] in
-            let engine: WhisperEngine? = existing ?? (try? WhisperEngine(modelPath: modelPath))
+            let engine: WhisperEngine? = await load.value
             guard let engine else {
-                await MainActor.run { self?.status = .error("모델 없음: \(modelPath)") }
+                await MainActor.run {
+                    self?.engineLoad = nil  // 실패한 로드는 버려서 다음 시도가 새로 로드하게
+                    self?.status = .error("모델 없음: \(modelPath)")
+                }
                 return
             }
             do {
