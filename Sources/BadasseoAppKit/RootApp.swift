@@ -42,10 +42,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// Sparkle을 링크하지 않으므로(Package.swift 참고) 이 값을 nil로 남겨 메뉴 항목이
 /// 숨겨진다 — vClips의 `checkForUpdates: (() -> Void)?` 파라미터와 같은 역할이지만,
 /// BadasseoRootApp은 두 타깃이 공유하는 `App`을 `static main()`으로 실행하므로
-/// (init 파라미터를 넘길 방법이 없음) 생성자 대신 전역 변수로 주입한다. main.swift가
-/// 앱 시작 전 메인 스레드에서 딱 한 번만 쓰고, 이후로는 읽기만 하므로 안전하다
-/// (Swift 6 strict concurrency 검사기가 이를 증명하지 못할 뿐이라 unsafe로 표시).
-nonisolated(unsafe) public var badasseoCheckForUpdates: (() -> Void)?
+/// (init 파라미터를 넘길 방법이 없음) 생성자 대신 전역 변수로 주입한다.
+/// main.swift 최상위 코드는 Swift 6에서 MainActor로 추론되고 읽기도 body(MainActor)
+/// 뿐이라, @MainActor 격리로 컴파일러가 안전성을 정적으로 보장한다.
+@MainActor public var badasseoCheckForUpdates: (() -> Void)?
 
 /// 두 실행 타깃(Badasseo/BadasseoAppStore)의 공용 앱 진입점. 각 타깃의 얇은
 /// main.swift가 `BadasseoRootApp.main()`을 호출한다(SwiftUI `App` 프로토콜의

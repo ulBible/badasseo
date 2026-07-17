@@ -76,6 +76,9 @@ fi
 # whisper.cpp ships as a dynamic XCFramework; embed it and point @rpath at
 # Contents/Frameworks, same as scripts/bundle.sh — without this the app
 # fails to launch (dyld: Library not loaded: @rpath/whisper.framework).
+# MAS SAFETY: copy frameworks by explicit name only — NEVER a *.framework
+# wildcard. bundle.sh shares this derived-data dir and leaves Sparkle.framework
+# there; embedding Sparkle in the MAS build is an App Review rejection.
 WHISPER_FRAMEWORK=""
 for candidate in "${BUILD_DIR}/whisper.framework" "${BUILD_DIR}/PackageFrameworks/whisper.framework"; do
   [[ -d "${candidate}" ]] && WHISPER_FRAMEWORK="${candidate}" && break
