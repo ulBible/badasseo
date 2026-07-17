@@ -21,6 +21,7 @@ final class AppState: ObservableObject {
     private let capture = AudioCapture()
     private var engine: WhisperEngine?
     private let modifierHoldMonitor = ModifierHoldMonitor()
+    private var noSpeechGeneration = 0
 
     /// 현재 녹음 세션을 시작시킨 경로("rightCommand"/"custom"). begin 시점에만 모드를
     /// 확인해 세팅하고, end/cancel은 모드 재확인 대신 이 값으로 자기 세션인지만 본다 —
@@ -70,7 +71,7 @@ final class AppState: ObservableObject {
 
     private func beginRecording() {
         // .error에서도 시작 허용 — 레코딩 재시도가 곧 에러 해제. (에러 문구는 다음 시도까지 메뉴에 유지)
-        switch status { case .idle, .error: break; default: return }
+        switch status { case .idle, .error, .noSpeech: break; default: return }
         do {
             try capture.start()
             status = .recording
@@ -90,10 +91,12 @@ final class AppState: ObservableObject {
     }
 
     private func showNoSpeech() {
+        noSpeechGeneration += 1
+        let gen = noSpeechGeneration
         status = .noSpeech
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.5))
-            if case .noSpeech = self.status { self.status = .idle }
+            if case .noSpeech = self.status, gen == self.noSpeechGeneration { self.status = .idle }
         }
     }
 
