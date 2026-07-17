@@ -16,7 +16,7 @@ struct SettingsView: View {
 /// 단축키·사운드 설정.
 struct GeneralTab: View {
     @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
-    @AppStorage("soundFeedback") private var soundFeedback = false
+    @AppStorage("soundFeedback") private var soundFeedback = true
     @AppStorage(HoldKey.defaultsKey) private var holdKey = HoldKey.rightCommand.rawValue
 
     var body: some View {
@@ -48,7 +48,7 @@ struct GeneralTab: View {
                 .font(.callout).foregroundStyle(.secondary)
             Divider()
             Toggle("입력 시작/종료음", isOn: $soundFeedback)
-            Text("받아써의 기본은 무음이에요. 켜면 절제된 키 사운드가 재생돼요.")
+            Text("녹음 시작/종료에 절제된 키 사운드가 재생돼요. 끄면 완전 무음으로 동작해요.")
                 .font(.callout).foregroundStyle(.secondary)
         }
         .padding(16)

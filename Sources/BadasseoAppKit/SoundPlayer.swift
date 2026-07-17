@@ -17,7 +17,11 @@ final class SoundPlayer {
         p.prepareToPlay()
         return p
     }
-    private var enabled: Bool { UserDefaults.standard.bool(forKey: "soundFeedback") }  // 기본 false
+    // 기본 켜짐 (2026-07-17 Bible 결정 — 자체 사운드가 절제된 톤이라 기본 경험에 포함).
+    // 키 미존재 = true, 사용자가 명시적으로 끈 경우만 false.
+    private var enabled: Bool {
+        UserDefaults.standard.object(forKey: "soundFeedback") as? Bool ?? true
+    }
 
     func playStart() { guard enabled else { return }; start?.currentTime = 0; start?.play() }
     func playStop() { guard enabled else { return }; stop?.currentTime = 0; stop?.play() }
