@@ -36,8 +36,10 @@ public enum TextInserter {
         else { return .copiedOnly }
         down.flags = .maskCommand
         up.flags = .maskCommand
-        down.post(tap: .cghidEventTap)
-        up.post(tap: .cghidEventTap)
+        // .cgSessionEventTap, NOT .cghidEventTap: 샌드박스(MAS 빌드)는 HID 탭 포스팅을
+        // 소리 없이 차단한다 — vClips가 실측으로 확인, 두 채널 모두 세션 탭으로 출시됨.
+        down.post(tap: .cgSessionEventTap)
+        up.post(tap: .cgSessionEventTap)
 
         // 복원: 대상 앱의 ⌘V 소비 시간을 여유 있게 두고(0.8s), 그 사이 사용자가 새로 복사했으면
         // (changeCount 변화) 건드리지 않는다. 완벽한 소비-시점 API는 macOS에 없음 — 업계 표준 타협.
