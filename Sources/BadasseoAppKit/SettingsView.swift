@@ -15,7 +15,7 @@ struct SettingsView: View {
             List(Pane.allCases, selection: $pane) { p in
                 Label(p.title, systemImage: p.symbol).tag(p)
             }
-            .safeAreaInset(edge: .top) { Color.clear.frame(height: 12) }
+            .safeAreaInset(edge: .top) { Color.clear.frame(height: 28) }
             .navigationSplitViewColumnWidth(150)
             .listStyle(.sidebar)
             .toolbar(removing: .sidebarToggle)
@@ -27,6 +27,7 @@ struct SettingsView: View {
                 case .history: HistoryTab()
                 }
             }
+            .safeAreaInset(edge: .top) { Color.clear.frame(height: 8) }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .frame(width: 680, height: 520)

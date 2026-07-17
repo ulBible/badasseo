@@ -45,7 +45,6 @@ public struct BadasseoRootApp: App {
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var state = AppState()
-    @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
 
     public var body: some Scene {
@@ -66,8 +65,9 @@ public struct BadasseoRootApp: App {
                 // 메뉴바 전용(LSUIElement) 앱은 비활성 상태라 설정 창이 뒤에 열림 —
                 // 먼저 앱을 활성화해 창을 포그라운드로.
                 NSApp.activate(ignoringOtherApps: true)
-                openSettings()
+                openWindow(id: "settings")
             }
+            .keyboardShortcut(",", modifiers: .command)
             Button("온보딩 다시 보기") {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "onboarding")
@@ -86,12 +86,29 @@ public struct BadasseoRootApp: App {
                     }
                 }
         }
+        .commands {
+            // MenuBarExtra 항목의 keyboardShortcut은 상태바 메뉴 안에서만 표시될 뿐
+            // 전역 단축키로 라우팅되지 않음 — 예전 `Settings` scene이 암묵적으로
+            // 앱 메뉴에 등록해 주던 전역 ⌘, 동작을 CommandGroup으로 대신 복원.
+            CommandGroup(replacing: .appSettings) {
+                Button("설정…") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "settings")
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
         Window("받아써 시작하기", id: "onboarding") {
             OnboardingView()
         }
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
-        Settings { SettingsView() }
+        Window("설정", id: "settings") {
+            SettingsView()
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
     }
 
     private var iconName: String {
