@@ -47,6 +47,8 @@ struct MicStep: View {
                 if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
                     granted = true
                     poller?.invalidate()
+                    // 시스템 설정 왕복 후 LSUIElement 앱은 뒤로 밀린다 — 창을 다시 앞으로.
+                    OnboardingModel.bringToFront()
                 }
             }
         }

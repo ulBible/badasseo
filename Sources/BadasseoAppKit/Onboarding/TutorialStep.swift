@@ -4,9 +4,12 @@ import BadasseoEngine
 
 struct TutorialStep: View {
     @ObservedObject var model: OnboardingModel
+    @ObservedObject var store: ModelStore
     @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
     @State private var text = ""
     @State private var success = false
+
+    init(model: OnboardingModel) { self.model = model; self.store = model.modelStore }
 
     private var keyName: String { hotkeyMode == "rightCommand" ? "\(HoldKey.current.displayName)를" : "⌥Space를" }
 
@@ -15,7 +18,20 @@ struct TutorialStep: View {
         VStack(spacing: 12) {
             Text(success ? "🎉 완벽해요!" : "해볼까요?").font(.system(size: 19, weight: .heavy))
             if !success {
-                if hotkeyMode == "rightCommand" && !ax {
+                if store.state != .ready {
+                    Text("모델을 받는 중이에요 — 조금만 기다려 주세요")
+                        .font(.system(size: 13)).foregroundStyle(.secondary)
+                    switch store.state {
+                    case .downloading(let p):
+                        ProgressView(value: p).frame(maxWidth: 240).tint(OnboardingTheme.green)
+                    case .failed(let msg):
+                        Text(msg).font(.system(size: 11)).foregroundStyle(.red)
+                        Button("다시 받기") { store.startDownload() }
+                            .buttonStyle(.borderedProminent).tint(OnboardingTheme.green).controlSize(.small)
+                    default:
+                        ProgressView().controlSize(.small)
+                    }
+                } else if hotkeyMode == "rightCommand" && !ax {
                     Text("\(HoldKey.current.displayName) 감지에는 손쉬운 사용 권한이 필요해요.")
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -37,6 +53,9 @@ struct TutorialStep: View {
                     .strokeBorder(OnboardingTheme.green, style: StrokeStyle(lineWidth: 2, dash: success ? [] : [5])))
                 .onChange(of: text) { _, new in
                     if !new.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { success = true }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .badasseoDidTranscribe)) { note in
+                    if let t = note.object as? String { text = t }
                 }
             if success {
                 Text("이제 어디서든 이렇게 쓰면 돼요. 메뉴바에서 만나요!")

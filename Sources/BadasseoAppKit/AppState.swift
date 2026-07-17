@@ -135,6 +135,9 @@ final class AppState: ObservableObject {
                         self.history.append(refined)
                         self.lastResult = refined
                         self.status = .idle
+                        // 붙여넣기 경로와 무관하게 전사 결과를 브로드캐스트 —
+                        // 온보딩 튜토리얼이 합성 ⌘V 성공 여부에 기대지 않고 직접 표시.
+                        NotificationCenter.default.post(name: .badasseoDidTranscribe, object: refined)
                     }
                 }
             } catch {
@@ -143,4 +146,9 @@ final class AppState: ObservableObject {
             }
         }
     }
+}
+
+extension Notification.Name {
+    /// 전사 완료 브로드캐스트 — 온보딩 튜토리얼이 붙여넣기 경로와 무관하게 결과를 표시하는 데 사용.
+    static let badasseoDidTranscribe = Notification.Name("badasseoDidTranscribe")
 }
