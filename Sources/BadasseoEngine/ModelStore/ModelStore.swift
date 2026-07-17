@@ -14,6 +14,9 @@ public final class ModelStore: NSObject, ObservableObject {
     private lazy var session = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
 
     public func ensureModel() {
+        if case .downloading = state { return }
+        if case .verifying = state { return }
+        if case .ready = state { return }
         let dest = ModelInfo.destination
         if let size = try? FileManager.default.attributesOfItem(atPath: dest.path)[.size] as? Int64,
            size == ModelInfo.byteSize {
@@ -24,6 +27,8 @@ public final class ModelStore: NSObject, ObservableObject {
     }
 
     public func startDownload() {
+        if case .downloading = state { return }
+        if case .verifying = state { return }
         state = .downloading(0)
         task = resumeData.map { session.downloadTask(withResumeData: $0) }
             ?? session.downloadTask(with: ModelInfo.url)
@@ -62,6 +67,7 @@ extension ModelStore: URLSessionDownloadDelegate {
     public nonisolated func urlSession(_ s: URLSession, downloadTask: URLSessionDownloadTask,
                                        didWriteData: Int64, totalBytesWritten: Int64,
                                        totalBytesExpectedToWrite: Int64) {
+        guard totalBytesExpectedToWrite > 0 else { return }
         let p = Double(totalBytesWritten) / Double(max(totalBytesExpectedToWrite, 1))
         Task { @MainActor [weak self] in
             if case .downloading = self?.state { self?.state = .downloading(p) }
@@ -72,7 +78,14 @@ extension ModelStore: URLSessionDownloadDelegate {
         // location은 델리게이트 리턴 후 삭제됨 — 즉시 안전한 위치로 이동
         let hold = FileManager.default.temporaryDirectory
             .appendingPathComponent("badasseo-model-\(UUID().uuidString).tmp")
-        try? FileManager.default.moveItem(at: location, to: hold)
+        do {
+            try FileManager.default.moveItem(at: location, to: hold)
+        } catch {
+            Task { @MainActor [weak self] in
+                self?.state = .failed("다운로드 파일 이동 실패 — 디스크 공간을 확인해 주세요")
+            }
+            return
+        }
         Task { @MainActor [weak self] in self?.verify(fileAt: hold) }
     }
     public nonisolated func urlSession(_ s: URLSession, task: URLSessionTask,
