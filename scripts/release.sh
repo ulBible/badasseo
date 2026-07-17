@@ -51,6 +51,15 @@ fi
 echo "==> Building ${APP_BUNDLE} (via bundle.sh)"
 ./scripts/bundle.sh release
 
+# Re-sign a COPY, never the dev build in build/ — re-signing that in place
+# switches its identity away from "Badasseo Self Signed", which invalidates
+# the developer's TCC grants (mic/AX) and bricks the locally installed app
+# (learned the hard way on the 1.0.0 rehearsal).
+mkdir -p "${DIST_DIR}/stage"
+rm -rf "${DIST_DIR}/stage/${APP_NAME}.app"
+ditto "${APP_BUNDLE}" "${DIST_DIR}/stage/${APP_NAME}.app"
+APP_BUNDLE="${DIST_DIR}/stage/${APP_NAME}.app"
+
 echo "==> Stamping version ${VERSION}"
 PB=/usr/libexec/PlistBuddy
 PLIST="${APP_BUNDLE}/Contents/Info.plist"
@@ -78,8 +87,11 @@ for nested in \
 done
 codesign --force --options runtime --timestamp \
   --sign "${DEV_ID}" "${APP_BUNDLE}/Contents/Frameworks/whisper.framework"
-# Hardened runtime + secure timestamp are notarization requirements.
+# Hardened runtime + secure timestamp are notarization requirements. The
+# entitlements file re-opens microphone access, which the hardened runtime
+# otherwise blocks silently (vClips needs no mic, hence no file there).
 codesign --force --options runtime --timestamp \
+  --entitlements Resources/Badasseo-DevID.entitlements \
   --sign "${DEV_ID}" "${APP_BUNDLE}"
 codesign --verify --strict --verbose=2 "${APP_BUNDLE}"
 
@@ -101,6 +113,9 @@ ditto -c -k --keepParent "${APP_BUNDLE}" "${ZIP_PATH}"
 
 echo "==> Gatekeeper check"
 spctl --assess --type exec --verbose=2 "${APP_BUNDLE}"
+
+# Keep dist/ to archives only before appcast generation scans it.
+rm -rf "${DIST_DIR}/stage"
 
 echo "==> Generating Sparkle appcast"
 # The Sparkle SPM artifact ships the CLI tools; the EdDSA private key lives in
