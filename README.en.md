@@ -23,15 +23,19 @@
   <img src="docs/images/onboarding.png" width="560" alt="Badasseo onboarding — say it, and it's written; voice to text entirely on your Mac">
 </p>
 
-Badasseo is a macOS menu-bar app for Korean voice input. Hold a shortcut and speak;
-a local Whisper model transcribes what you said and inserts it right at your cursor.
-No server, no account, no subscription.
+Badasseo is a **Korean-first** voice input app for the macOS menu bar. Hold a shortcut
+and speak; a local Whisper model transcribes what you said and inserts it right at your
+cursor. No server, no account, no subscription. Optimized for Korean but not
+Korean-only — mixed Korean-English sentences and even full English sentences come
+out as spoken.
 
 ## What's different
 
 - **It just works after install** — the language is fixed to Korean. Auto language
   detection is prone to hallucinating Korean speech into unrelated English text (a
   problem we ran into firsthand); Badasseo removes that failure path entirely by design.
+  The fix is a safety net against mistranslation, not a limitation — speak English and
+  you get English back, verbatim.
 - **Privacy** — everything runs locally via whisper.cpp + Metal. No network calls for
   transcription, no accounts, no subscriptions. See [PRIVACY.md](PRIVACY.md) for details.
 - **Built-in developer dictionary** — corrects the phonetic Korean transliterations
@@ -78,8 +82,8 @@ cd badasseo
 open build/Badasseo.app
 ```
 
-**Requirements**: Apple Silicon Mac, macOS 14+. On first launch it downloads the Korean
-recognition model (Whisper large-v3-turbo, ~1.6GB) once.
+**Requirements**: Apple Silicon Mac, macOS 14+. On first launch it downloads the
+speech-recognition model (Whisper large-v3-turbo, ~1.6GB) once.
 
 ## Why stock Whisper
 

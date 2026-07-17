@@ -10,9 +10,10 @@ struct DownloadStep: View {
     var body: some View {
         VStack(spacing: 12) {
             IconBadge(symbol: "cpu")
-            Text("한국어 인식 모델을 받는 중이에요").font(.system(size: 19, weight: .heavy))
-            Text("Whisper large-v3-turbo · 1.6GB · 처음 한 번만")
+            Text("음성 인식 모델을 받는 중이에요").font(.system(size: 19, weight: .heavy))
+            Text("Whisper large-v3-turbo · 1.6GB · 처음 한 번만\n한국어에 최적화, 영어가 섞여도 그대로 받아써요")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center).lineSpacing(3)
             switch store.state {
             case .downloading(let p):
                 ProgressView(value: p).frame(maxWidth: 300).tint(OnboardingTheme.green)
