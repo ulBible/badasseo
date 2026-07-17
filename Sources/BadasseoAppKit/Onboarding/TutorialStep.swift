@@ -62,7 +62,7 @@ struct TutorialStep: View {
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 OnboardingPrimaryButton(title: "받아써 시작") { model.finish() }
             } else {
-                Text(!ax ? "권한이 없어 클립보드에 담겨요 — 말한 뒤 이 칸에 ⌘V 하세요" : " ")
+                Text(!ax ? "말하면 이 칸에 바로 나타나요 (권한이 없어도 튜토리얼은 동작해요)" : " ")
                     .font(.system(size: 11)).foregroundStyle(.tertiary)
                 Button("건너뛰기") { model.finish() }
                     .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)

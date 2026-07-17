@@ -149,8 +149,10 @@ final class AppState: ObservableObject {
                     } else {
                         // 온보딩 창이 떠 있으면 자동 삽입(⌘V 합성)을 건너뛴다 — 튜토리얼은
                         // 아래 알림 경로로만 입력칸에 표시하므로, ⌘V까지 하면 이중 입력이 된다.
+                        // key window일 때만 건너뛴다(visible이 아님) — 온보딩 창을 뒤로 둔 채
+                        // 다른 앱에 받아쓰면 정상 삽입돼야 한다(전사 유실 방지).
                         let onboardingActive = NSApp.windows.contains {
-                            $0.identifier?.rawValue == "onboarding" && $0.isVisible
+                            $0.identifier?.rawValue == "onboarding" && $0.isKeyWindow
                         }
                         if !onboardingActive, TextInserter.insert(refined) == .copiedOnly {
                             Notifier.copiedOnly()
