@@ -152,7 +152,7 @@ struct HistoryTab: View {
             VStack(spacing: 14) {
                 SettingsCard(title: "최근 인식된 텍스트") {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("최근 인식된 텍스트 (최대 500개, 이 맥에만 저장)")
+                        Text("최대 500개까지 이 맥에만 저장돼요.")
                             .font(.callout).foregroundStyle(.secondary)
                         List(entries.indices, id: \.self) { i in
                             HStack(alignment: .top) {
