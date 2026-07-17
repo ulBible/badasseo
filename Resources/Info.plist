@@ -5,6 +5,7 @@
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key><string>app.badasseo</string>
     <key>CFBundleName</key><string>받아써</string>
+    <key>NSHumanReadableCopyright</key><string>© 2026 Chakchak Works</string>
     <key>CFBundleExecutable</key><string>Badasseo</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>

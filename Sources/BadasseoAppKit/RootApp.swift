@@ -72,6 +72,10 @@ public struct BadasseoRootApp: App {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "onboarding")
             }
+            Button("받아써 정보") {
+                AboutPanel.show(showsSupportLink: Bundle.main.bundleIdentifier != "app.badasseo.mas")
+            }
+            Divider()
             Button("종료") { NSApp.terminate(nil) }
         } label: {
             Image(systemName: iconName)
