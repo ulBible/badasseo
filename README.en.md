@@ -32,15 +32,12 @@ out as spoken.
 ## What's different
 
 - **It just works after install** — the language is fixed to Korean. Auto language
-  detection is prone to hallucinating Korean speech into unrelated English text (a
-  problem we ran into firsthand); Badasseo removes that failure path entirely by design.
-  The fix is a safety net against mistranslation, not a limitation — speak English and
-  you get English back, verbatim.
+  detection is prone to hallucinating Korean speech into unrelated English text;
+  Badasseo removes that failure path entirely by design. The fix is a safety net
+  against mistranslation, not a limitation — speak English and you get English
+  back, verbatim.
 - **Privacy** — everything runs locally via whisper.cpp + Metal. No network calls for
   transcription, no accounts, no subscriptions. See [PRIVACY.md](PRIVACY.md) for details.
-- **Built-in developer dictionary** — corrects the phonetic Korean transliterations
-  developers commonly say back into their original English terms, e.g. "깃허브" → "GitHub",
-  "풀 리퀘스트" → "PR". Fully editable in Settings.
 - **Works fully with zero permissions** — the Accessibility permission is opt-in. Without
   it, ⌥Space + manual ⌘V gives you the complete feature set.
 
@@ -66,8 +63,7 @@ brew install --cask ulBible/tap/badasseo
 
 Or download the latest `Badasseo-x.y.z.zip` from
 [Releases](https://github.com/ulBible/badasseo/releases), unzip, and drag
-`Badasseo.app` into `/Applications`. Requires macOS 14+. (Mac App Store
-distribution is still in progress.)
+`Badasseo.app` into `/Applications`. Requires macOS 14+.
 
 Badasseo keeps itself up to date: it checks the latest release in the
 background (Sparkle) and offers new versions as they ship. You can also check
@@ -85,13 +81,11 @@ open build/Badasseo.app
 **Requirements**: Apple Silicon Mac, macOS 14+. On first launch it downloads the
 speech-recognition model (Whisper large-v3-turbo, ~1.6GB) once.
 
-## Why stock Whisper
+## Model choice
 
-We benchmarked three fine-tuned Korean models and didn't adopt any of them. In a blind
-comparison (source hidden and shuffled, 26 valid samples), **stock large-v3-turbo was
-preferred 62% of the time** — the fine-tuned model with the best CER score actually made
-more content errors on real speech, an overfit to its own training distribution rather
-than a real quality edge. Full methodology and numbers are in [bench/report.md](bench/report.md).
+Badasseo runs stock Whisper large-v3-turbo, chosen through a blind-comparison
+benchmark on real speech recordings. Methodology and numbers are published in
+[bench/report.md](bench/report.md).
 
 ## Permissions
 
