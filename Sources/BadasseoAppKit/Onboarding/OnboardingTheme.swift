@@ -73,6 +73,18 @@ extension View {
     func glassPanel() -> some View { modifier(GlassPanel()) }
 }
 
+/// 실제 앱 아이콘 배지 — 환영 화면 전용. AppIcon.icns를 그대로 그려서
+/// 독·메뉴바·온보딩의 브랜드 마크(마이크+3줄)가 일치한다.
+struct AppIconBadge: View {
+    var body: some View {
+        Image(nsImage: NSApp.applicationIconImage)
+            .resizable()
+            .interpolation(.high)
+            .frame(width: 72, height: 72)
+            .shadow(color: OnboardingTheme.green.opacity(0.35), radius: 10, y: 5)
+    }
+}
+
 /// 그린 그라디언트 아이콘 배지 — 각 스텝 헤더에 사용.
 struct IconBadge: View {
     let symbol: String
@@ -123,8 +135,11 @@ struct OnboardingPrimaryButton: View {
 }
 
 /// 캡슐 스텝 바 — 5단계 라벨, 현재 단계만 그린 필로 강조.
+/// onSelect가 있으면 각 단계를 눌러 바로 이동할 수 있다 (각 스텝이
+/// 자기 전제 조건 — 모델 준비·권한 — 을 스스로 지키므로 자유 이동 안전).
 struct StepBar: View {
     let current: Int
+    var onSelect: ((Int) -> Void)?
     @Environment(\.colorScheme) private var scheme
     private let labels = ["환영", "모델", "마이크", "단축키", "첫 발화"]
 
@@ -148,6 +163,12 @@ struct StepBar: View {
                             }
                         }
                     )
+                    .contentShape(Capsule())
+                    .onTapGesture { onSelect?(i) }
+                    .onHover { inside in
+                        guard onSelect != nil else { return }
+                        if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                    }
             }
         }
         .padding(4)

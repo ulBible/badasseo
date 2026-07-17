@@ -20,7 +20,7 @@ struct OnboardingView: View {
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
                     removal: .move(edge: .leading).combined(with: .opacity)))
-                StepBar(current: model.step)
+                StepBar(current: model.step, onSelect: { model.step = $0 })
                     .padding(.bottom, 18)
             }
             .animation(.spring(duration: 0.4), value: model.step)
