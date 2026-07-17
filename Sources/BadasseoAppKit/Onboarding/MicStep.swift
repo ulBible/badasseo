@@ -21,6 +21,9 @@ struct MicStep: View {
                     AVCaptureDevice.requestAccess(for: .audio) { ok in
                         Task { @MainActor in
                             granted = ok
+                            // 권한 대화상자 응답 후 LSUIElement 앱은 뒤로 밀린다 —
+                            // 온보딩 창을 다시 앞으로.
+                            OnboardingModel.bringToFront()
                             if !ok {
                                 NSWorkspace.shared.open(URL(string:
                                     "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)

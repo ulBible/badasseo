@@ -14,6 +14,14 @@ final class OnboardingModel: ObservableObject {
 
     func next() { if step < 4 { step += 1 } else { finish() } }
     func skip() { finish() }
+
+    /// 권한 대화상자 응답 등으로 뒤로 밀린 온보딩 창을 다시 앞으로 (LSUIElement 앱).
+    static func bringToFront() {
+        NSApp.activate(ignoringOtherApps: true)
+        let win = NSApp.windows.first { $0.identifier?.rawValue == "onboarding" }
+            ?? NSApp.windows.first { $0.title == "받아써 시작하기" }
+        win?.makeKeyAndOrderFront(nil)
+    }
     func finish() {
         UserDefaults.standard.set(true, forKey: Self.doneKey)
         if let onboarding = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" }) {

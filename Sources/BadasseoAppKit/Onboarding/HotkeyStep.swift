@@ -78,7 +78,11 @@ struct HotkeyStep: View {
         poller?.invalidate()
         poller = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
-                if AXIsProcessTrusted() { axTrusted = true; poller?.invalidate() }
+                if AXIsProcessTrusted() {
+                    axTrusted = true
+                    poller?.invalidate()
+                    OnboardingModel.bringToFront()  // 시스템 설정에서 돌아온 뒤 창을 앞으로
+                }
             }
         }
     }
