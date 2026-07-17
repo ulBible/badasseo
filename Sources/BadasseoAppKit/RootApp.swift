@@ -107,11 +107,10 @@ public struct BadasseoRootApp: App {
                 case .idle where Self.menuBarMark != nil:
                     Image(nsImage: Self.menuBarMark!)
                 case .processing where Self.processingFrames.count == 4:
-                    // 변환 중: 텍스트 3줄이 타이핑되듯 차오르는 프레임 순환 (0→1→2→3줄)
-                    TimelineView(.periodic(from: .now, by: 0.18)) { context in
-                        let tick = Int(context.date.timeIntervalSinceReferenceDate / 0.18)
-                        Image(nsImage: Self.processingFrames[tick % Self.processingFrames.count])
-                    }
+                    // 변환 중: 텍스트 3줄이 타이핑되듯 차오르는 프레임 순환 (0→1→2→3줄).
+                    // 프레임은 AppState의 타이머가 0.18s마다 진행 (라벨에 TimelineView 금지 —
+                    // AppState.status didSet 주석 참고).
+                    Image(nsImage: Self.processingFrames[state.processingFrame % 4])
                 default:
                     Image(systemName: iconName)
                 }

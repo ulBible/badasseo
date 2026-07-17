@@ -10,7 +10,29 @@ extension KeyboardShortcuts.Name {
 @MainActor
 final class AppState: ObservableObject {
     enum Status { case idle, recording, processing, noSpeech, error(String) }
-    @Published var status: Status = .idle
+    @Published var status: Status = .idle {
+        didSet {
+            // 변환 중 메뉴바 타이핑 애니메이션 프레임 구동. TimelineView를 MenuBarExtra
+            // 라벨에 넣으면 requestUpdate가 자기 자신을 무한 재귀해 메인 스레드가 100%로
+            // 마비된다(실측 — 전사 완료 콜백까지 굶겨 앱 먹통). 타이머로 틱당 1회만 갱신.
+            if case .processing = status {
+                guard frameTimer == nil else { return }
+                frameTimer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: true) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.processingFrame = (self.processingFrame + 1) % 4
+                    }
+                }
+            } else {
+                frameTimer?.invalidate()
+                frameTimer = nil
+                processingFrame = 0
+            }
+        }
+    }
+    /// 변환 중 애니메이션의 현재 프레임(0~3줄).
+    @Published var processingFrame = 0
+    private var frameTimer: Timer?
     @Published var lastResult: String = ""
 
     private let support = FileManager.default.urls(for: .applicationSupportDirectory,
