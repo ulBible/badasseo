@@ -6,6 +6,7 @@ struct HotkeyStep: View {
     @ObservedObject var model: OnboardingModel
     @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
     @State private var axTrusted = AXIsProcessTrusted()
+    @State private var didPrompt = false
     @State private var poller: Timer?
 
     var body: some View {
@@ -27,14 +28,23 @@ struct HotkeyStep: View {
                 Text("놀고 있는 오른쪽 ⌘ 하나로. 말이 끝나면 커서 위치에 바로 입력돼요.")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 if axTrusted {
-                    Label("손쉬운 사용 허용됨", systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 12)).foregroundStyle(OnboardingTheme.green)
+                    Label("손쉬운 사용: 켜짐", systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(OnboardingTheme.green)
                 } else {
+                    Label("손쉬운 사용: 꺼짐", systemImage: "xmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(.orange)
                     HStack(spacing: 8) {
                         Button("손쉬운 사용 허용하기") { promptAX() }
                             .buttonStyle(.borderedProminent).tint(OnboardingTheme.green).controlSize(.small)
                         Text("단축키 감지·자동 입력에 이 권한 하나만 써요")
                             .font(.system(size: 11)).foregroundStyle(.tertiary)
+                    }
+                    if didPrompt {
+                        Text("시스템 설정이 열렸어요. 목록에서 '받아써'를 찾아\n스위치를 켜면 자동으로 다음으로 넘어가요.")
+                            .font(.callout).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("설정 다시 열기") { reopenSettings() }
+                            .buttonStyle(.bordered).controlSize(.small)
                     }
                 }
             }
@@ -75,6 +85,7 @@ struct HotkeyStep: View {
 
     private func promptAX() {
         _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        didPrompt = true
         poller?.invalidate()
         poller = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
@@ -86,5 +97,10 @@ struct HotkeyStep: View {
                 }
             }
         }
+    }
+
+    private func reopenSettings() {
+        NSWorkspace.shared.open(URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 }
