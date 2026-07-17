@@ -6,6 +6,7 @@ import BadasseoEngine
 struct BadasseoApp: App {
     @StateObject private var state = AppState()
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         MenuBarExtra {
@@ -27,10 +28,24 @@ struct BadasseoApp: App {
                 NSApp.activate(ignoringOtherApps: true)
                 openSettings()
             }
+            Button("온보딩 다시 보기") {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "onboarding")
+            }
             Button("종료") { NSApp.terminate(nil) }
         } label: {
             Image(systemName: iconName)
+                .onAppear {
+                    if !OnboardingModel.isDone {
+                        NSApp.activate(ignoringOtherApps: true)
+                        openWindow(id: "onboarding")
+                    }
+                }
         }
+        Window("받아써 시작하기", id: "onboarding") {
+            OnboardingView()
+        }
+        .windowResizability(.contentSize)
         Settings { SettingsView() }
     }
 
