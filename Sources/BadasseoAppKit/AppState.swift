@@ -147,7 +147,12 @@ final class AppState: ObservableObject {
                     if refined.isEmpty || SpeechGate.isJunk(refined) {
                         self.showNoSpeech()  // 무음·잡음·환각 토큰 — 삽입하지 않음 (스펙)
                     } else {
-                        if TextInserter.insert(refined) == .copiedOnly {
+                        // 온보딩 창이 떠 있으면 자동 삽입(⌘V 합성)을 건너뛴다 — 튜토리얼은
+                        // 아래 알림 경로로만 입력칸에 표시하므로, ⌘V까지 하면 이중 입력이 된다.
+                        let onboardingActive = NSApp.windows.contains {
+                            $0.identifier?.rawValue == "onboarding" && $0.isVisible
+                        }
+                        if !onboardingActive, TextInserter.insert(refined) == .copiedOnly {
                             Notifier.copiedOnly()
                         }
                         self.history.append(refined)
