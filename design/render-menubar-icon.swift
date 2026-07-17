@@ -5,7 +5,7 @@ import AppKit
 // 사용: swift render-menubar-icon.swift <출력디렉토리>  → menubar-icon.png(18pt)·menubar-icon@2x.png
 let outDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "/tmp"
 
-func render(scale: CGFloat) -> NSBitmapImageRep {
+func render(scale: CGFloat, lineCount: Int = 3) -> NSBitmapImageRep {
     let W: CGFloat = 22 * scale, H: CGFloat = 18 * scale   // 메뉴바 관례: 약간 넓은 캔버스
     let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(W), pixelsHigh: Int(H),
                                bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
@@ -41,7 +41,7 @@ func render(scale: CGFloat) -> NSBitmapImageRep {
     ctx.setLineWidth(S*0.095)
     let full = W - S*0.06 - textX
     let rowGap = S*0.24
-    for (i, frac) in [1.0, 0.72, 0.45].enumerated() {
+    for (i, frac) in [1.0, 0.72, 0.45].enumerated() where i < lineCount {
         let y = rowMid + rowGap - CGFloat(i) * rowGap
         ctx.move(to: CGPoint(x: textX, y: y))
         ctx.addLine(to: CGPoint(x: textX + full * frac, y: y))
@@ -52,8 +52,17 @@ func render(scale: CGFloat) -> NSBitmapImageRep {
     return rep
 }
 
-for (scale, name) in [(CGFloat(1), "menubar-icon.png"), (CGFloat(2), "menubar-icon@2x.png")] {
-    let rep = render(scale: scale)
-    try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "\(outDir)/\(name)"))
-    print("wrote \(outDir)/\(name)")
+for (scale, suffix) in [(CGFloat(1), ""), (CGFloat(2), "@2x")] {
+    // 평상시 아이콘(3줄 완성형)
+    let full = render(scale: scale)
+    try! full.representation(using: .png, properties: [:])!
+        .write(to: URL(fileURLWithPath: "\(outDir)/menubar-icon\(suffix).png"))
+    print("wrote \(outDir)/menubar-icon\(suffix).png")
+    // 변환 중 애니메이션 프레임: 0줄→1줄→2줄→3줄 (타이핑되는 느낌)
+    for n in 0...3 {
+        let rep = render(scale: scale, lineCount: n)
+        try! rep.representation(using: .png, properties: [:])!
+            .write(to: URL(fileURLWithPath: "\(outDir)/menubar-frame\(n)\(suffix).png"))
+        print("wrote \(outDir)/menubar-frame\(n)\(suffix).png")
+    }
 }

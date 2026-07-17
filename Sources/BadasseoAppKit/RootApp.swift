@@ -97,9 +97,16 @@ public struct BadasseoRootApp: App {
             Button("종료") { NSApp.terminate(nil) }
         } label: {
             Group {
-                if case .idle = state.status, let mark = Self.menuBarMark {
-                    Image(nsImage: mark)
-                } else {
+                switch state.status {
+                case .idle where Self.menuBarMark != nil:
+                    Image(nsImage: Self.menuBarMark!)
+                case .processing where Self.processingFrames.count == 4:
+                    // 변환 중: 텍스트 3줄이 타이핑되듯 차오르는 프레임 순환 (0→1→2→3줄)
+                    TimelineView(.periodic(from: .now, by: 0.18)) { context in
+                        let tick = Int(context.date.timeIntervalSinceReferenceDate / 0.18)
+                        Image(nsImage: Self.processingFrames[tick % Self.processingFrames.count])
+                    }
+                default:
                     Image(systemName: iconName)
                 }
             }
@@ -145,13 +152,11 @@ public struct BadasseoRootApp: App {
         }
     }
 
-    /// 평상시(idle) 메뉴바 아이콘 — 앱 아이콘과 같은 심볼(마이크+3줄)의 템플릿판.
-    /// 1x/2x PNG를 한 NSImage로 합치고 isTemplate으로 라이트/다크 자동 틴트.
-    /// 상태 표시(녹음·처리·오류)는 의미 전달이 우선이라 SF Symbols를 유지한다.
-    static let menuBarMark: NSImage? = {
+    /// 번들 PNG(1x/2x)를 한 NSImage로 합쳐 템플릿(라이트/다크 자동 틴트)으로 로드.
+    static func templateImage(_ base: String) -> NSImage? {
         let img = NSImage(size: NSSize(width: 22, height: 18))
         var loaded = false
-        for name in ["menubar-icon", "menubar-icon@2x"] {
+        for name in [base, base + "@2x"] {
             guard let url = Bundle.module.url(forResource: name, withExtension: "png"),
                   let rep = NSBitmapImageRep(data: (try? Data(contentsOf: url)) ?? Data())
             else { continue }
@@ -162,5 +167,12 @@ public struct BadasseoRootApp: App {
         guard loaded else { return nil }
         img.isTemplate = true
         return img
-    }()
+    }
+
+    /// 평상시(idle) 메뉴바 아이콘 — 앱 아이콘과 같은 심볼(마이크+3줄)의 템플릿판.
+    /// 녹음·오류 등 상태 표시는 의미 전달이 우선이라 SF Symbols를 유지한다.
+    static let menuBarMark: NSImage? = templateImage("menubar-icon")
+
+    /// 변환 중 타이핑 애니메이션 프레임(0~3줄). 4장이 모두 있어야 사용한다.
+    static let processingFrames: [NSImage] = (0...3).compactMap { templateImage("menubar-frame\($0)") }
 }
