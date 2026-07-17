@@ -18,8 +18,8 @@ _최종 수정: 2026년 7월 17일_
 
 - **커스텀 사전** — 사용자가 설정에서 추가한 `{말한 것 → 쓸 것}` 항목. 로컬 JSON 파일.
 - **입력 히스토리** — 최근 전사 결과 최대 500개. 로컬 JSON 파일, 설정 창 히스토리
-  탭에서 개별 삭제 또는 전체 삭제 가능.
-- 두 항목 모두 이 맥을 벗어나지 않으며, 앱을 삭제하면 함께 삭제됩니다.
+  탭에서 전체 삭제 가능.
+- 두 항목 모두 이 맥을 벗어나지 않습니다.
 
 ## 받아써가 하지 않는 것
 
@@ -42,8 +42,9 @@ _최종 수정: 2026년 7월 17일_
 
 ## 데이터 삭제
 
-설정 창 히스토리 탭에서 개별 항목 또는 전체 삭제가 가능합니다. 앱을 삭제하면
-로컬에 저장된 사전·히스토리·모델 파일이 모두 함께 제거됩니다.
+설정 창 히스토리 탭에서 전체 삭제가 가능합니다. 앱을 제거할 때 저장된 데이터
+(사전·히스토리·모델)까지 지우려면 `~/Library/Application Support/Badasseo` 폴더를
+삭제하세요 — macOS는 앱을 지워도 이 폴더를 자동으로 지우지 않습니다.
 
 ## 문의
 
@@ -72,9 +73,8 @@ Badasseo is a Korean voice-input app for macOS. Our privacy principle is simple 
 - **Custom dictionary** — the `{spoken → written}` entries you add in Settings.
   A local JSON file.
 - **Input history** — up to the last 500 transcriptions. A local JSON file,
-  viewable and deletable (individually or all at once) from the Settings
-  History tab.
-- Both stay on your Mac and are removed if you delete the app.
+  viewable and clearable from the Settings History tab.
+- Both stay on your Mac.
 
 ## What Badasseo does NOT do
 
@@ -99,9 +99,10 @@ clipboard managers (e.g. vClips) don't record it in their history.
 
 ## Data deletion
 
-Delete individual entries or everything from the Settings History tab.
-Uninstalling Badasseo removes the locally stored dictionary, history, and
-model files.
+Clear the entire history from the Settings History tab. To remove all stored
+data (dictionary, history, model) when uninstalling, delete
+`~/Library/Application Support/Badasseo` — macOS does not remove this folder
+automatically when you delete the app.
 
 ## Contact
 
