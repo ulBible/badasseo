@@ -27,10 +27,10 @@ struct SettingsView: View {
                 case .history: HistoryTab()
                 }
             }
-            .safeAreaInset(edge: .top) { Color.clear.frame(height: 8) }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .frame(width: 680, height: 520)
+        .toolbarBackground(.hidden, for: .windowToolbar)
     }
 }
 
@@ -96,7 +96,6 @@ struct GeneralTab: View {
             Spacer()
         }
         .padding(.horizontal, 20)
-        .padding(.top, 8)
     }
 }
 
@@ -137,7 +136,7 @@ struct DictionaryTab: View {
         }
         .frame(maxHeight: .infinity)
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.bottom, 12)
         .onAppear { rows = DictionaryRows.rows(from: UserDictionary.standard.load()) }
         .onChange(of: rows) { _, newRows in
             UserDictionary.standard.save(DictionaryRows.dictionary(from: newRows))
@@ -180,7 +179,7 @@ struct HistoryTab: View {
         }
         .frame(maxHeight: .infinity)
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.bottom, 12)
         .onAppear { entries = HistoryStore.standard.entries() }
     }
 }
