@@ -19,7 +19,7 @@ set -euo pipefail
 #   3. App Store Connect: create the app record for app.badasseo.mas.
 #
 # Usage:
-#   ./scripts/appstore.sh <version>                  # distribution .pkg (not yet implemented — see TODO(plan-5))
+#   ./scripts/appstore.sh <version>                  # distribution .pkg (upload via Transporter)
 #   ./scripts/appstore.sh <version> --sandbox-smoke  # local self-signed build
 #                                                    # for testing the sandbox
 
