@@ -15,61 +15,60 @@ enum AboutPanel {
         ])
     }
 
-    /// The Chakchak Works snap mark — identical drawing to vClips' AboutPanel
-    /// so the studio identity matches across apps. Drawn with dynamic colors
-    /// via a drawing handler so it re-renders correctly in light and dark
-    /// (the ink block follows labelColor; the incoming block stays brand blue).
+    /// The Chakchak Works mark — identical drawing to vClips' AboutPanel so the
+    /// studio identity matches across apps: the last blue block being set into
+    /// the empty top-right slot of a 2×2 stack (착착: blocks snapping into
+    /// place), drawn with dynamic colors via a drawing handler so it re-renders
+    /// correctly in light or dark (seated blocks follow labelColor; the
+    /// incoming block stays brand blue).
     private static func markImage() -> NSImage {
-        let size = NSSize(width: 132, height: 70)
-        return NSImage(size: size, flipped: false) { _ in
+        let size = NSSize(width: 57, height: 63)
+        return NSImage(size: size, flipped: false) { rect in
             let ink = NSColor.labelColor
-            let glyph = NSColor.windowBackgroundColor
             let blue = NSColor(calibratedRed: 0.16, green: 0.42, blue: 0.96, alpha: 1)
+            // The design grid is 100×110 with top-down y, scaled into the view.
+            let u = min(rect.width / 100, rect.height / 110)
+            let ox = (rect.width - 100 * u) / 2
+            let oy = (rect.height - 110 * u) / 2
 
-            func stroke(_ a: NSPoint, _ b: NSPoint, _ w: CGFloat, _ c: NSColor) {
-                c.setStroke()
+            func block(_ x: CGFloat, _ yTop: CGFloat) -> NSBezierPath {
+                let r = NSRect(x: ox + x * u, y: oy + (80 - yTop) * u,
+                               width: 30 * u, height: 30 * u)
+                return NSBezierPath(roundedRect: r, xRadius: 8 * u, yRadius: 8 * u)
+            }
+            func trail(_ x: CGFloat, _ y1: CGFloat, _ y2: CGFloat) {
+                ink.withAlphaComponent(0.45).setStroke()
                 let p = NSBezierPath()
-                p.lineWidth = w
+                p.lineWidth = 2.8 * u
                 p.lineCapStyle = .round
-                p.move(to: a); p.line(to: b)
+                p.move(to: NSPoint(x: ox + x * u, y: oy + y1 * u))
+                p.line(to: NSPoint(x: ox + x * u, y: oy + y2 * u))
                 p.stroke()
             }
-            // stylized ㅊ, a little figure; legStride > 0 makes it stride
-            func chi(at c: NSPoint, scale s: CGFloat, color: NSColor, legStride: CGFloat) {
-                let lw = s * 0.16
-                stroke(NSPoint(x: c.x - s * 0.10, y: c.y + s * 0.46),
-                       NSPoint(x: c.x + s * 0.14, y: c.y + s * 0.52), lw, color)
-                stroke(NSPoint(x: c.x - s * 0.34, y: c.y + s * 0.18),
-                       NSPoint(x: c.x + s * 0.34, y: c.y + s * 0.18), lw, color)
-                let hip = NSPoint(x: c.x, y: c.y + s * 0.16)
-                stroke(hip, NSPoint(x: c.x - s * (0.30 + legStride), y: c.y - s * (legStride > 0 ? 0.44 : 0.50)), lw, color)
-                stroke(hip, NSPoint(x: c.x + s * (0.30 + legStride), y: c.y - s * 0.50), lw, color)
-            }
 
-            let blockW: CGFloat = 36, blockH: CGFloat = 46, radius: CGFloat = 9, gap: CGFloat = 7
-            let y0: CGFloat = 8
-            let left = NSRect(x: 10, y: y0, width: blockW, height: blockH)
             ink.setFill()
-            NSBezierPath(roundedRect: left, xRadius: radius, yRadius: radius).fill()
-            chi(at: NSPoint(x: left.midX, y: left.midY), scale: 24, color: glyph, legStride: 0)
+            block(18, 44).fill()
+            block(18, 78).fill()
+            block(52, 78).fill()
 
-            let right = NSRect(x: left.maxX + gap, y: y0 + 2, width: blockW, height: blockH)
+            let slot = block(52, 44)          // the waiting slot, a hairline
+            slot.lineWidth = 1.3 * u
+            ink.withAlphaComponent(0.3).setStroke()
+            slot.stroke()
+
             NSGraphicsContext.current?.saveGraphicsState()
+            let cx = ox + 67 * u, cy = oy + 77 * u
             let t = NSAffineTransform()
-            t.translateX(by: right.midX, yBy: right.midY)
-            t.rotate(byDegrees: -9)
-            t.translateX(by: -right.midX, yBy: -right.midY)
+            t.translateX(by: cx, yBy: cy)
+            t.rotate(byDegrees: 8)
+            t.translateX(by: -cx, yBy: -cy)
             t.concat()
             blue.setFill()
-            NSBezierPath(roundedRect: right, xRadius: radius, yRadius: radius).fill()
-            chi(at: NSPoint(x: right.midX, y: right.midY), scale: 24, color: .white, legStride: 0.16)
+            block(52, 18).fill()              // descending, leading corner first
             NSGraphicsContext.current?.restoreGraphicsState()
 
-            let mx = right.maxX + 8
-            for (dy, len) in [(12, 8), (23, 12), (34, 8)] as [(CGFloat, CGFloat)] {
-                stroke(NSPoint(x: mx, y: y0 + dy), NSPoint(x: mx + len, y: y0 + dy + 1),
-                       2.6, ink.withAlphaComponent(0.45))
-            }
+            trail(77, 101, 108)
+            trail(86, 97, 104)
             return true
         }
     }
@@ -99,7 +98,12 @@ enum AboutPanel {
         let text = NSMutableAttributedString()
         let attachment = NSTextAttachment()
         attachment.image = markImage()
-        attachment.bounds = CGRect(x: 0, y: 0, width: 132, height: 70)
+        // Lift the mark above the baseline — the drawing runs nearly to the
+        // image's bottom edge, so without this the tagline sits too close.
+        // The credits area has a fixed height and scrolls past it, so the
+        // lift is paid for by a slightly smaller mark and by replacing the
+        // blank line before the links with paragraphSpacing below.
+        attachment.bounds = CGRect(x: 0, y: 16, width: 57, height: 63)
         let mark = NSMutableAttributedString(attachment: attachment)
         mark.addAttribute(.paragraphStyle, value: center,
                           range: NSRange(location: 0, length: mark.length))
@@ -107,8 +111,14 @@ enum AboutPanel {
         text.append(NSAttributedString(string: "\n", attributes: secondary))
         text.append(NSAttributedString(
             string: "키보드 대신 말로. 전 과정이 내 맥 안에서.\n", attributes: body))
+        let creditGap = NSMutableParagraphStyle()
+        creditGap.alignment = .center
+        creditGap.lineSpacing = 2
+        creditGap.paragraphSpacing = 6
+        var creditAttrs = secondary
+        creditAttrs[.paragraphStyle] = creditGap
         text.append(NSAttributedString(
-            string: "Made by Chakchak Works · by ulBible\n\n", attributes: secondary))
+            string: "Made by Chakchak Works · by ulBible\n", attributes: creditAttrs))
 
         let separator = NSAttributedString(string: "  ·  ", attributes: secondary)
         text.append(link("GitHub", "https://github.com/ulBible/badasseo"))

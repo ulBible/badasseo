@@ -19,7 +19,7 @@
   <a href="https://github.com/sponsors/ulBible"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4" alt="Sponsor"></a>
 </p>
 
-*A **Chakchak Works** app — small Mac tools that snap right in.*
+*A **Chakchak Works** app — small tools that snap right in.*
 
 <p align="center">
   <img src="docs/images/onboarding.png" width="560" alt="받아써 온보딩 — 말하면, 받아써. 목소리에서 텍스트까지 전 과정이 맥 안에서">
@@ -107,7 +107,7 @@ open build/Badasseo.app
 
 <p align="center">
   <a href="https://github.com/ulBible">
-    <img src="docs/brand-logo.png" width="330" alt="Chakchak Works — two blocks snapping into place">
+    <img src="docs/brand-logo.png" width="330" alt="Chakchak Works — the last block being set into place">
   </a>
 </p>
 <p align="center">
