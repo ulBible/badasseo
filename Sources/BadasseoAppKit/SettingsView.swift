@@ -50,11 +50,17 @@ struct SettingsCard<Content: View>: View {
     }
 }
 
-/// 단축키·사운드 설정.
+/// 단축키·사운드·시작 설정.
 struct GeneralTab: View {
     @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
     @AppStorage("soundFeedback") private var soundFeedback = true
     @AppStorage(HoldKey.defaultsKey) private var holdKey = HoldKey.rightCommand.rawValue
+    @State private var launchAtLogin = LaunchAtLogin.isEnabled
+    @State private var launchAtLoginError: String?
+    /// 아래 revert가 스스로 트리거하는 onChange를 사용자 조작과 구분하는 가드.
+    /// 실시간 SMAppService 상태로 가드하면 self-signed 앱이 .requiresApproval
+    /// (isEnabled false)에 머물며 등록은 유지된 상태에서 OFF가 영원히 no-op이 된다.
+    @State private var revertingLaunchAtLogin = false
 
     var body: some View {
         VStack(spacing: 14) {
@@ -90,6 +96,31 @@ struct GeneralTab: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Toggle("입력 시작/종료음", isOn: $soundFeedback)
                     Text("녹음 시작/종료에 절제된 키 사운드가 재생돼요. 끄면 완전 무음으로 동작해요.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+            }
+            SettingsCard(title: "시작") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Toggle("로그인 시 자동 실행", isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { _, enabled in
+                            if revertingLaunchAtLogin { revertingLaunchAtLogin = false; return }
+                            do {
+                                try LaunchAtLogin.set(enabled: enabled)
+                                launchAtLoginError = nil
+                            } catch {
+                                launchAtLoginError = error.localizedDescription
+                                let actual = LaunchAtLogin.isEnabled
+                                if launchAtLogin != actual {
+                                    revertingLaunchAtLogin = true
+                                    launchAtLogin = actual
+                                }
+                            }
+                        }
+                    if let launchAtLoginError {
+                        Text(launchAtLoginError)
+                            .font(.callout).foregroundStyle(.red)
+                    }
+                    Text("맥을 켜면 받아써가 메뉴바에 자동으로 상주해요.")
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }

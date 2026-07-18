@@ -57,6 +57,15 @@ public struct BadasseoRootApp: App {
         // ② 로드 중 residency 거부 시 무한 재시도 루프가 시도마다 누수(실측 16GB, 전사 영구 멈춤).
         // 짧은 발화 전사에서 residency 최적화 이득은 무시 가능한 수준.
         setenv("GGML_METAL_NO_RESIDENCY", "1", 1)
+
+        // 이미 온보딩을 완료한 기존 사용자는 OnboardingModel.finish()가 다시 실행되지
+        // 않아 로그인 시 자동 실행 기본값을 못 받는다 — 1회 소급 적용(설정 > 시작에서
+        // 언제든 해제 가능). 실패(미설치 빌드)는 조용히 무시.
+        let migratedKey = "launchAtLoginMigrated"
+        if OnboardingModel.isDone, !UserDefaults.standard.bool(forKey: migratedKey) {
+            try? LaunchAtLogin.set(enabled: true)
+            UserDefaults.standard.set(true, forKey: migratedKey)
+        }
     }
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate

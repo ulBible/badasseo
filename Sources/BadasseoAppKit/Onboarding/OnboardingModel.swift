@@ -37,6 +37,11 @@ final class OnboardingModel: ObservableObject {
     }
     func finish() {
         UserDefaults.standard.set(true, forKey: Self.doneKey)
+        // 음성입력 앱은 메뉴바 상주가 전제라 온보딩 완료 시 기본으로 로그인 항목에
+        // 등록한다(설정 > 시작에서 언제든 해제 가능). macOS가 등록 시 로그인 항목
+        // 알림/System Settings 노출로 사용자에게 알리므로 투명하다. 개발 빌드(설치되지
+        // 않은 .app 바깥에서 swift run)에서는 등록이 던지므로 조용히 무시.
+        try? LaunchAtLogin.set(enabled: true)
         if let onboarding = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" }) {
             onboarding.close()
         } else {
