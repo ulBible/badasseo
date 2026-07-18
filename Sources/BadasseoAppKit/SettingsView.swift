@@ -66,9 +66,16 @@ struct GeneralTab: View {
         VStack(spacing: 14) {
             SettingsCard(title: "음성 입력 단축키") {
                 VStack(alignment: .leading, spacing: 10) {
+                    // "(기본)" 라벨은 변형별 실제 기본과 일치해야 한다 — MAS는 ⌥Space(custom)가
+                    // 기본(온보딩 프리셀렉트·심사 노트와 동일 축), GitHub은 우측 ⌘.
                     Picker("", selection: $hotkeyMode) {
-                        Text("우측 ⌘ 누르고 말하기 (기본)").tag("rightCommand")
-                        Text("사용자 지정 조합").tag("custom")
+                        if BuildVariant.current == .appStore {
+                            Text("우측 ⌘ 누르고 말하기 (고급 — 손쉬운 사용 권한 필요)").tag("rightCommand")
+                            Text("단축키 조합 (기본 ⌥Space)").tag("custom")
+                        } else {
+                            Text("우측 ⌘ 누르고 말하기 (기본)").tag("rightCommand")
+                            Text("사용자 지정 조합").tag("custom")
+                        }
                     }
                     .pickerStyle(.radioGroup).labelsHidden()
                     .onChange(of: hotkeyMode) { _, mode in
