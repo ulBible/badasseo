@@ -57,11 +57,13 @@ struct TutorialStep: View {
                 .onReceive(NotificationCenter.default.publisher(for: .badasseoDidTranscribe)) { note in
                     if let t = note.object as? String { text = t }
                 }
+            // 동의 체크박스는 성공·건너뛰기 어느 경로로 나가든 보여야 한다 —
+            // 건너뛰기 쪽에서 안 보이면 무동의 등록(2.4.5(iii))이 재발한다.
+            Toggle("로그인 시 자동 실행", isOn: $model.enableLaunchAtLogin)
+                .toggleStyle(.checkbox).font(.system(size: 12))
             if success {
                 Text("이제 어디서든 이렇게 쓰면 돼요. 메뉴바에서 만나요!")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
-                Toggle("로그인 시 자동 실행", isOn: $model.enableLaunchAtLogin)
-                    .toggleStyle(.checkbox).font(.system(size: 12))
                 OnboardingPrimaryButton(title: "받아써 시작") { model.finish() }
             } else {
                 Text(!ax ? "말하면 이 칸에 바로 나타나요 (권한이 없어도 튜토리얼은 동작해요)" : " ")
