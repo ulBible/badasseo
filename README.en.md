@@ -19,6 +19,8 @@
   <a href="https://github.com/sponsors/ulBible"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4" alt="Sponsor"></a>
 </p>
 
+*A **Chakchak Works** app — small Mac tools that snap right in.*
+
 <p align="center">
   <img src="docs/images/onboarding.png" width="560" alt="Badasseo onboarding — say it, and it's written; voice to text entirely on your Mac">
 </p>
@@ -107,6 +109,11 @@ Badasseo is free and open source (MIT). If it's useful to you, consider supporti
 
 ---
 
+<p align="center">
+  <a href="https://github.com/ulBible">
+    <img src="docs/brand-logo.png" width="330" alt="Chakchak Works — two blocks snapping into place">
+  </a>
+</p>
 <p align="center">
   Made by <strong>Chakchak Works</strong> · by <a href="https://github.com/ulBible">ulBible</a>
 </p>
