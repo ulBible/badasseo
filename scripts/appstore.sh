@@ -5,13 +5,10 @@ set -euo pipefail
 # sandboxed — see Resources/Badasseo-AppStore.entitlements) into an
 # uploadable .pkg.
 #
-# STATUS (Task 6 / Plan 5 handoff): this script builds and assembles the
-# sandboxed .app skeleton end to end, including local self-signed smoke
-# signing (--sandbox-smoke) so the sandbox can be exercised before any Apple
-# certs exist. The DISTRIBUTION signing path below (Apple Distribution cert,
-# provisioning profile, productbuild .pkg) is NOT implemented yet — that is
-# Plan 5's job, once the vClips App Store re-review lands and MAS submission
-# is actually scheduled. Search for "TODO(plan-5)" below.
+# STATUS: fully implemented — both --sandbox-smoke (self-signed local test)
+# and the distribution path (Apple Distribution + provisioning profile +
+# productbuild .pkg, vClips-pattern). Distribution needs the one-time setup
+# below; it fails with a clear message on whichever piece is missing.
 #
 # One-time setup for distribution (Plan 5, not done here):
 #   1. Certificates (Xcode → Settings… → Accounts → Manage Certificates… → +):
@@ -109,26 +106,63 @@ if [[ "${MODE}" == "--sandbox-smoke" ]]; then
       SIGN_IDENTITY="-"
     fi
   fi
+  # 자리표시자(TEAM_ID) 키가 남아 있으면 자가서명에서 TCC 신원이 어긋난다 —
+  # application-identifier/team-identifier를 뺀 사본으로 서명.
+  SMOKE_ENT="$(mktemp -t badasseo-smoke).entitlements"
+  plutil -convert xml1 -o "${SMOKE_ENT}" "Resources/Badasseo-AppStore.entitlements"
+  /usr/libexec/PlistBuddy -c "Delete :com.apple.application-identifier" "${SMOKE_ENT}" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.team-identifier" "${SMOKE_ENT}" 2>/dev/null || true
   codesign --force --deep --sign "${SIGN_IDENTITY}" \
-    --entitlements "Resources/Badasseo-AppStore.entitlements" "${APP_BUNDLE}"
+    --entitlements "${SMOKE_ENT}" "${APP_BUNDLE}"
   echo "==> Done (smoke): ${APP_BUNDLE} — launch it to test sandboxed behavior"
   exit 0
 fi
 
-# --- Distribution signing (TODO(plan-5): not implemented) ---
-# The pieces this needs, once certs/profile exist (see header):
-#   1. Find "Apple Distribution" identity via `security find-identity`.
-#   2. Find "Mac Installer Distribution" / "3rd Party Mac Developer
-#      Installer" identity for productbuild.
-#   3. Copy ${PROFILE} to ${APP_BUNDLE}/Contents/embedded.provisionprofile.
-#   4. `xattr -cr` the bundle (strips com.apple.quarantine — App Store
-#      processing rejects it with error 91109 if it survives).
-#   5. `codesign --force --timestamp --sign <dist-id> --entitlements
-#      Resources/Badasseo-AppStore.entitlements ${APP_BUNDLE}`, then
-#      `codesign --verify --strict`.
-#   6. `productbuild --component ${APP_BUNDLE} /Applications --sign
-#      <installer-id> dist/${APP_NAME}-AppStore-${VERSION}.pkg`.
-# See vClips' scripts/appstore.sh (this script's template) for a full
-# reference implementation of steps 1-6.
-echo "error: distribution signing not implemented yet (TODO(plan-5)) — run with --sandbox-smoke for a local unsigned/self-signed test build." >&2
-exit 1
+# --- Distribution signing (vClips scripts/appstore.sh와 동일 패턴) ---
+DIST_ID=$(security find-identity -v -p codesigning 2>/dev/null \
+  | grep -m1 "Apple Distribution" | sed -E 's/.*"(.+)"$/\1/' || true)
+if [[ -z "${DIST_ID}" ]]; then
+  echo "error: no 'Apple Distribution' certificate — create it in Xcode (see header)." >&2
+  exit 1
+fi
+# Installer identity lives in the keychain but not under codesigning policy.
+INSTALLER_ID=$(security find-identity -v 2>/dev/null \
+  | grep -m1 -E "(3rd Party Mac Developer Installer|Mac Installer Distribution)" \
+  | sed -E 's/.*"(.+)"$/\1/' || true)
+if [[ -z "${INSTALLER_ID}" ]]; then
+  echo "error: no installer certificate ('Mac Installer Distribution') — create it in Xcode (see header)." >&2
+  exit 1
+fi
+TEAM_ID=$(sed -E 's/.*\(([A-Z0-9]+)\)$/\1/' <<<"${DIST_ID}")
+
+if [[ ! -f "${PROFILE}" ]]; then
+  echo "error: provisioning profile missing at ${PROFILE} (see header, step 2)." >&2
+  exit 1
+fi
+cp "${PROFILE}" "${APP_BUNDLE}/Contents/embedded.provisionprofile"
+
+# Browser-downloaded files (like the provisioning profile) carry
+# com.apple.quarantine, which App Store processing rejects with error 91109
+# if it survives inside the package — strip every xattr from the bundle.
+xattr -cr "${APP_BUNDLE}"
+
+ENT="$(mktemp -t badasseo-mas).entitlements"
+sed -e "s/TEAM_ID/${TEAM_ID}/g" -e "s/BUNDLE_ID/${BUNDLE_ID}/g" \
+  Resources/Badasseo-AppStore.entitlements > "${ENT}"
+
+echo "==> Signing with: ${DIST_ID} (team ${TEAM_ID})"
+# whisper.framework은 중첩 코드라 먼저(inside-out) 배포 신원으로 서명해야 한다.
+codesign --force --timestamp --sign "${DIST_ID}" \
+  "${APP_BUNDLE}/Contents/Frameworks/whisper.framework"
+codesign --force --timestamp --sign "${DIST_ID}" --entitlements "${ENT}" "${APP_BUNDLE}"
+codesign --verify --strict --verbose=2 "${APP_BUNDLE}"
+
+echo "==> Building installer package"
+mkdir -p "${DIST_DIR}"
+PKG="${DIST_DIR}/${APP_NAME}-AppStore-${VERSION}.pkg"
+rm -f "${PKG}"
+productbuild --component "${APP_BUNDLE}" /Applications \
+  --sign "${INSTALLER_ID}" "${PKG}"
+
+echo "==> Done: ${PKG}"
+echo "Upload with the Transporter app, then submit for review in App Store Connect."

@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-    <key>com.apple.security.app-sandbox</key><true/>
-    <key>com.apple.security.device.audio-input</key><true/>
-    <key>com.apple.security.network.client</key><true/>
-</dict></plist>
+<plist version="1.0">
+<dict>
+    <!-- 받아써 MAS 샌드박스: 마이크(전사) + 네트워크(모델 다운로드)만.
+         TEAM_ID/BUNDLE_ID 자리표시자는 scripts/appstore.sh 배포 경로가 채운다
+         (vClips 패턴). 스모크(자가서명) 경로는 자리표시자 키를 제거한 사본을 쓴다 —
+         잘못된 application-identifier가 있으면 TCC 매칭이 어긋난다. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.application-identifier</key>
+    <string>TEAM_ID.BUNDLE_ID</string>
+    <key>com.apple.developer.team-identifier</key>
+    <string>TEAM_ID</string>
+</dict>
+</plist>
