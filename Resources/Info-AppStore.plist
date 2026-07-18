@@ -13,4 +13,6 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSMicrophoneUsageDescription</key><string>말한 내용을 텍스트로 바꾸기 위해 마이크를 사용해요. 음성은 이 맥을 벗어나지 않아요.</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+    <key>ITSAppUsesNonExemptEncryption</key><false/>
 </dict></plist>

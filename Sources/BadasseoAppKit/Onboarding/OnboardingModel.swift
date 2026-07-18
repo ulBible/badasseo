@@ -11,6 +11,10 @@ final class OnboardingModel: ObservableObject {
 
     @Published var step = 0            // 0환영 1다운로드 2마이크 3단축키·권한 4튜토리얼
     let modelStore = OnboardingModel.sharedModelStore
+    /// 튜토리얼 화면(TutorialStep)의 "로그인 시 자동 실행" 체크박스와 바인딩 — 기본 켜짐이지만
+    /// finish()가 이 값을 명시적으로 확인한 뒤에만 등록한다(2.4.5(iii): 눈에 보이는 동의 없는
+    /// 백그라운드 등록 금지).
+    @Published var enableLaunchAtLogin = true
 
     func next() { if step < 4 { step += 1 } else { finish() } }
     func skip() { finish() }
@@ -41,7 +45,11 @@ final class OnboardingModel: ObservableObject {
         // 등록한다(설정 > 시작에서 언제든 해제 가능). macOS가 등록 시 로그인 항목
         // 알림/System Settings 노출로 사용자에게 알리므로 투명하다. 개발 빌드(설치되지
         // 않은 .app 바깥에서 swift run)에서는 등록이 던지므로 조용히 무시.
-        try? LaunchAtLogin.set(enabled: true)
+        // enableLaunchAtLogin 확인 게이트: TutorialStep의 체크박스(기본 켜짐)로 눈에 보이는
+        // 동의를 거친 경우에만 등록한다(2.4.5(iii) 대응 — MAS 리뷰어가 끄면 등록하지 않음).
+        if enableLaunchAtLogin {
+            try? LaunchAtLogin.set(enabled: true)
+        }
         if let onboarding = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" }) {
             onboarding.close()
         } else {

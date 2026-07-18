@@ -60,6 +60,8 @@ struct TutorialStep: View {
             if success {
                 Text("이제 어디서든 이렇게 쓰면 돼요. 메뉴바에서 만나요!")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
+                Toggle("로그인 시 자동 실행", isOn: $model.enableLaunchAtLogin)
+                    .toggleStyle(.checkbox).font(.system(size: 12))
                 OnboardingPrimaryButton(title: "받아써 시작") { model.finish() }
             } else {
                 Text(!ax ? "말하면 이 칸에 바로 나타나요 (권한이 없어도 튜토리얼은 동작해요)" : " ")

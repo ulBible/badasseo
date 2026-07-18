@@ -3,11 +3,17 @@ import AppKit
 import BadasseoCore
 import BadasseoEngine
 
-/// GitHub / Mac App Store 빌드 변형 구분. 현재는 두 변형 동일 동작(분기 내용 없음) —
-/// vClips 재심사 결과가 나오면 카피·프리셀렉트 분기를 여기 채운다.
+/// GitHub / Mac App Store 빌드 변형 구분. 2.4.5 하드닝(vClips 손쉬운 사용 자동붙여넣기
+/// 거부 대응)으로 MAS 변형은 권한이 필요 없는 경로를 기본으로 안내한다 —
+/// HotkeyStep 프리셀렉트·카드 순서, About 패널 Support 링크 숨김 등에서 분기.
 public enum BuildVariant {
     case github
     case appStore
+}
+
+extension BuildVariant {
+    /// 실행 중인 번들이 Mac App Store 변형인지. Info-AppStore.plist가 app.badasseo.mas를 설정한다.
+    static var current: BuildVariant { Bundle.main.bundleIdentifier == "app.badasseo.mas" ? .appStore : .github }
 }
 
 /// 앱 종료 시 whisper.cpp(Metal) 정적 소멸자 abort를 우회하는 델리게이트.
@@ -61,8 +67,12 @@ public struct BadasseoRootApp: App {
         // 이미 온보딩을 완료한 기존 사용자는 OnboardingModel.finish()가 다시 실행되지
         // 않아 로그인 시 자동 실행 기본값을 못 받는다 — 1회 소급 적용(설정 > 시작에서
         // 언제든 해제 가능). 실패(미설치 빌드)는 조용히 무시.
+        // GitHub 변형 전용: MAS 리뷰어는 항상 신규 설치라 온보딩 체크박스 동의
+        // (OnboardingModel.enableLaunchAtLogin, TutorialStep)를 거침; 소급 등록은
+        // 그 체크박스가 생기기 전부터 있었던 GitHub 기존 사용자 전용이다(2.4.5(iii)
+        // 대응 — MAS 심사 경로에 무동의 자동 등록이 남지 않도록 belt and braces).
         let migratedKey = "launchAtLoginMigrated"
-        if OnboardingModel.isDone, !UserDefaults.standard.bool(forKey: migratedKey) {
+        if BuildVariant.current == .github, OnboardingModel.isDone, !UserDefaults.standard.bool(forKey: migratedKey) {
             try? LaunchAtLogin.set(enabled: true)
             UserDefaults.standard.set(true, forKey: migratedKey)
         }
@@ -106,7 +116,7 @@ public struct BadasseoRootApp: App {
                 }
             }
             Button("받아써 정보") {
-                AboutPanel.show(showsSupportLink: Bundle.main.bundleIdentifier != "app.badasseo.mas")
+                AboutPanel.show(showsSupportLink: BuildVariant.current == .github)
             }
             Divider()
             Button("종료") { NSApp.terminate(nil) }
