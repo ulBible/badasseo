@@ -153,7 +153,15 @@ final class AppState: ObservableObject {
         guard !SpeechGate.isSilence(samples: samples) else { showNoSpeech(); return }  // 무음 — 전사 생략
         SoundPlayer.shared.playStop()
         let dict = dictionary.load()
-        let terms = dictionary.promptTerms()
+        var terms = dictionary.promptTerms()
+        // 음성 명령이 켜져 있으면 활성 트리거 단어를 whisper initial prompt에 포함 —
+        // 명령어("줄바꿈" 등)가 유사 발음("출바꿈")으로 오인식되는 것을 줄인다.
+        if VoiceCommandSettings.isEnabled() {
+            for word in VoiceCommandSettings.triggers().values.joined()
+            where !terms.contains(word) {
+                terms.append(word)
+            }
+        }
         // 모델 로드(1.6GB whisper_init)는 반드시 메인 스레드 밖에서 — @MainActor 메서드로
         // 감싸면 detached여도 로드가 메인으로 홉해서 UI가 얼어붙는다.
         // 로드는 single-flight: 이미 진행 중이면 그 Task의 결과를 기다린다(주석 참고: engineLoad).
