@@ -122,7 +122,13 @@ echo "==> Done: ${APP_BUNDLE}"
 
 if [[ "${2:-}" == "install" ]]; then
   echo "==> Installing to /Applications"
-  rm -rf "/Applications/${APP_NAME}.app"
-  cp -R "${APP_BUNDLE}" "/Applications/${APP_NAME}.app"
+  if [[ -d "/Applications/${APP_NAME}.app" ]]; then
+    # 기존 번들을 rm -rf로 지우면 최근 macOS의 tccd가 앱 삭제로 보고
+    # 마이크·손쉬운 사용 권한 레코드를 정리해 버린다 (서명 DR이 안정적이어도).
+    # 번들 디렉터리는 남겨 두고 내용만 동기화해 권한을 보존한다.
+    rsync -a --delete "${APP_BUNDLE}/" "/Applications/${APP_NAME}.app/"
+  else
+    cp -R "${APP_BUNDLE}" "/Applications/${APP_NAME}.app"
+  fi
   echo "==> Installed: /Applications/${APP_NAME}.app"
 fi
