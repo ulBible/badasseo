@@ -79,4 +79,23 @@ final class VoiceCommandParserTests: XCTestCase {
         t[.enter] = ["go"]
         XCTAssertEqual(VoiceCommandParser.parse("검색 실행 Go", triggers: t).command, .enter)
     }
+    // 프로덕션 계약: 파서는 항상 Refiner를 거친 텍스트를 받는다 (공백 정규화·마침표 부착).
+    // Refiner가 바뀌어도 명령 감지가 깨지지 않도록 합성 경로를 고정한다.
+    func testParsesRefinerOutputCommandOnly() {
+        let refined = Refiner.refine("엔터", dictionary: [:])
+        let r = VoiceCommandParser.parse(refined, triggers: defaults)
+        XCTAssertEqual(r.command, .enter)
+        XCTAssertEqual(r.text, "")
+    }
+    func testParsesRefinerOutputCancelPhrase() {
+        // 의도된 오탐 정책 고정: "취소"로 끝나는 일반 문장도 cancel로 파싱된다.
+        let refined = Refiner.refine("회의 일정 취소", dictionary: [:])
+        let r = VoiceCommandParser.parse(refined, triggers: defaults)
+        XCTAssertEqual(r.command, .cancel)
+        XCTAssertEqual(r.text, "회의 일정")
+    }
+    func testFullWidthTrailingPunctuation() {
+        XCTAssertEqual(VoiceCommandParser.parse("보내줘 엔터！", triggers: defaults).command, .enter)
+        XCTAssertEqual(VoiceCommandParser.parse("확인 엔터？", triggers: defaults).command, .enter)
+    }
 }

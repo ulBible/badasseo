@@ -33,7 +33,7 @@ public enum VoiceCommandParser {
     {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         // 발화 끝 구두점("엔터.", "엔터!")은 매치를 막지 않도록 벗긴다.
-        let punctuation = CharacterSet(charactersIn: ".!?…。,")
+        let punctuation = CharacterSet(charactersIn: ".!?…。,！？")
         var body = trimmed
         while let last = body.unicodeScalars.last,
               punctuation.contains(last) || last == " " {
