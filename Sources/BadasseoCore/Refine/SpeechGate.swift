@@ -14,4 +14,14 @@ public enum SpeechGate {
     public static func isJunk(_ text: String) -> Bool {
         !text.contains { $0.isLetter || $0.isNumber }
     }
+
+    /// 세그먼트 환각 판정 — 오디오 끝자락의 1초 미만 자투리에서 직전 문장을
+    /// 통째로 반복하는 세그먼트가 나온다 (관측: 0.24초에 20+자). 사람이 낼 수
+    /// 없는 글자 밀도(1초 미만 & 초당 25자 초과)만 환각으로 간주한다 —
+    /// 실제 한국어 발화는 최대 ~10음절/초라 여유가 크다.
+    public static func isImpossiblyDense(_ text: String, duration: Double) -> Bool {
+        guard duration < 1.0 else { return false }
+        let letters = text.count { $0.isLetter || $0.isNumber }
+        return Double(letters) > duration * 25
+    }
 }

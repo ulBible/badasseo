@@ -1,3 +1,4 @@
+import BadasseoCore
 import Foundation
 import whisper
 
@@ -30,7 +31,11 @@ public final class WhisperEngine: @unchecked Sendable {
         params.print_realtime = false
         params.print_timestamps = false
         params.translate = false
-        params.no_timestamps = true
+        // 타임스탬프는 출력에 쓰지 않지만 디코딩에는 켜 둔다: whisper_full은
+        // 30초 윈도우를 마지막 타임스탬프 토큰 위치로 전진시키는데,
+        // no_timestamps=true면 매번 정확히 30초씩 점프해 경계에 걸친 발화가
+        // 통째로 누락된다 (긴 발화 누락 버그의 원인).
+        params.no_timestamps = false
         params.single_segment = false
         let prompt = promptTerms.joined(separator: ", ")
         return try "ko".withCString { ko in
@@ -43,7 +48,11 @@ public final class WhisperEngine: @unchecked Sendable {
                 }
                 guard rc == 0 else { throw WhisperError.transcribeFailed(rc) }
                 for i in 0..<whisper_full_n_segments(ctx) {
-                    out += String(cString: whisper_full_get_segment_text(ctx, i))
+                    let text = String(cString: whisper_full_get_segment_text(ctx, i))
+                    let dur = Double(whisper_full_get_segment_t1(ctx, i)
+                                     - whisper_full_get_segment_t0(ctx, i)) / 100.0
+                    if SpeechGate.isImpossiblyDense(text, duration: dur) { continue }
+                    out += text
                 }
                 return out.trimmingCharacters(in: .whitespacesAndNewlines)
             }
