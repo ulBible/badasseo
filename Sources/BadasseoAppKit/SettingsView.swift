@@ -181,15 +181,17 @@ struct CommandTriggerRow: View {
     }
 
     var body: some View {
+        // 사전 탭("말한 것 → 쓸 것")과 같은 방향: 말하는 단어 → 실행되는 동작.
         HStack {
-            Text(command.displayName)
-                .frame(width: 160, alignment: .leading)
             TextField("예: \(command.defaultTrigger)", text: $words)
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: words) { _, newValue in
                     UserDefaults.standard.set(
                         newValue, forKey: VoiceCommandSettings.triggersKey(command))
                 }
+            Image(systemName: "arrow.right").foregroundStyle(.tertiary)
+            Text(command.displayName)
+                .frame(width: 160, alignment: .leading)
         }
     }
 }
