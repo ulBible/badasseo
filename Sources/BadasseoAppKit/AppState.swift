@@ -153,7 +153,15 @@ final class AppState: ObservableObject {
         guard !SpeechGate.isSilence(samples: samples) else { showNoSpeech(); return }  // 무음 — 전사 생략
         SoundPlayer.shared.playStop()
         let dict = dictionary.load()
-        let terms = dictionary.promptTerms()
+        var terms = dictionary.promptTerms()
+        // 음성 명령이 켜져 있으면 활성 트리거 단어를 whisper initial prompt에 포함 —
+        // 명령어("줄바꿈" 등)가 유사 발음("출바꿈")으로 오인식되는 것을 줄인다.
+        if VoiceCommandSettings.isEnabled() {
+            for word in VoiceCommandSettings.triggers().values.joined()
+            where !terms.contains(word) {
+                terms.append(word)
+            }
+        }
         // 모델 로드(1.6GB whisper_init)는 반드시 메인 스레드 밖에서 — @MainActor 메서드로
         // 감싸면 detached여도 로드가 메인으로 홉해서 UI가 얼어붙는다.
         // 로드는 single-flight: 이미 진행 중이면 그 Task의 결과를 기다린다(주석 참고: engineLoad).
@@ -181,28 +189,59 @@ final class AppState: ObservableObject {
             do {
                 let raw = try engine.transcribe(samples: samples, promptTerms: terms)
                 let refined = Refiner.refine(raw, dictionary: dict)
+                // 음성 명령: 정제 후 마지막 단어를 검사. 토글 OFF면 파서를 타지 않아
+                // 키워드가 일반 텍스트로 그대로 삽입된다.
+                let (finalText, command) = VoiceCommandSettings.isEnabled()
+                    ? VoiceCommandParser.parse(refined, triggers: VoiceCommandSettings.triggers())
+                    : (refined, nil)
                 await MainActor.run {
                     guard let self else { return }
                     self.engine = engine  // 캐시 (다음부터 재사용) — 할당은 MainActor에서만
-                    if refined.isEmpty || SpeechGate.isJunk(refined) {
+                    // 온보딩 창이 떠 있으면 자동 삽입(⌘V 합성)을 건너뛴다 — 튜토리얼은
+                    // 아래 알림 경로로만 입력칸에 표시하므로, ⌘V까지 하면 이중 입력이 된다.
+                    // key window일 때만 건너뛴다(visible이 아님) — 온보딩 창을 뒤로 둔 채
+                    // 다른 앱에 받아쓰면 정상 삽입돼야 한다(전사 유실 방지).
+                    let onboardingActive = NSApp.windows.contains {
+                        $0.identifier?.rawValue == "onboarding" && $0.isKeyWindow
+                    }
+                    if command == .cancel {
+                        // 폐기 — 삽입·히스토리·브로드캐스트 없음. 유일한 피드백은
+                        // 확인음(화면 신호가 없는 경로라 소리가 폐기 사실을 알린다).
+                        SoundPlayer.shared.playCommand()
+                        self.status = .idle
+                    } else if finalText.isEmpty, let command {
+                        // 명령 단독 발화("엔터") — 붙여넣기 없이 키만
+                        if !onboardingActive {
+                            TextInserter.press(command)
+                            SoundPlayer.shared.playCommand()
+                        }
+                        self.status = .idle
+                    } else if finalText.isEmpty || SpeechGate.isJunk(finalText) {
                         self.showNoSpeech()  // 무음·잡음·환각 토큰 — 삽입하지 않음 (스펙)
                     } else {
-                        // 온보딩 창이 떠 있으면 자동 삽입(⌘V 합성)을 건너뛴다 — 튜토리얼은
-                        // 아래 알림 경로로만 입력칸에 표시하므로, ⌘V까지 하면 이중 입력이 된다.
-                        // key window일 때만 건너뛴다(visible이 아님) — 온보딩 창을 뒤로 둔 채
-                        // 다른 앱에 받아쓰면 정상 삽입돼야 한다(전사 유실 방지).
-                        let onboardingActive = NSApp.windows.contains {
-                            $0.identifier?.rawValue == "onboarding" && $0.isKeyWindow
+                        if !onboardingActive {
+                            switch TextInserter.insert(finalText) {
+                            case .copiedOnly:
+                                Notifier.copiedOnly()  // 키 합성도 불가한 상태 — 명령 생략
+                            case .pasted:
+                                if let command {
+                                    // 대상 앱이 ⌘V를 소화한 뒤 키가 도착해야 한다 (스펙: 0.25초).
+                                    // 그 사이 새 녹음이 시작됐으면(상태 변화) 키를 쏘지 않는다 —
+                                    // 지연된 Return이 다른 맥락에 꽂히는 사고 방지.
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                                        guard let self, case .idle = self.status else { return }
+                                        TextInserter.press(command)
+                                        SoundPlayer.shared.playCommand()
+                                    }
+                                }
+                            }
                         }
-                        if !onboardingActive, TextInserter.insert(refined) == .copiedOnly {
-                            Notifier.copiedOnly()
-                        }
-                        self.history.append(refined)
-                        self.lastResult = refined
+                        self.history.append(finalText)
+                        self.lastResult = finalText
                         self.status = .idle
                         // 붙여넣기 경로와 무관하게 전사 결과를 브로드캐스트 —
                         // 온보딩 튜토리얼이 합성 ⌘V 성공 여부에 기대지 않고 직접 표시.
-                        NotificationCenter.default.post(name: .badasseoDidTranscribe, object: refined)
+                        NotificationCenter.default.post(name: .badasseoDidTranscribe, object: finalText)
                     }
                 }
             } catch {

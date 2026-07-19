@@ -1,4 +1,5 @@
 import AppKit
+import BadasseoCore
 import ApplicationServices
 import Carbon.HIToolbox
 
@@ -49,5 +50,27 @@ public enum TextInserter {
             if !backupItems.isEmpty { pb.writeObjects(backupItems) }
         }
         return .pasted
+    }
+
+    /// 음성 명령의 키 합성 — ⌘V 합성과 동일 채널(.cgSessionEventTap)·동일 가드.
+    /// 붙여넣기 직후 호출된다 (타이밍은 호출자 책임 — AppState가 0.25초 지연).
+    public static func press(_ command: VoiceCommand) {
+        let key: CGKeyCode
+        var flags: CGEventFlags = []
+        switch command {
+        case .enter: key = CGKeyCode(kVK_Return)
+        case .newline: key = CGKeyCode(kVK_Return); flags = .maskShift
+        case .tab: key = CGKeyCode(kVK_Tab)
+        case .cancel: return  // 키 동작 없는 명령
+        }
+        guard hasAccessibility, !IsSecureEventInputEnabled() else { return }
+        let src = CGEventSource(stateID: .combinedSessionState)
+        guard let down = CGEvent(keyboardEventSource: src, virtualKey: key, keyDown: true),
+              let up = CGEvent(keyboardEventSource: src, virtualKey: key, keyDown: false)
+        else { return }
+        down.flags = flags
+        up.flags = flags
+        down.post(tap: .cgSessionEventTap)
+        up.post(tap: .cgSessionEventTap)
     }
 }
