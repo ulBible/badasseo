@@ -205,10 +205,16 @@ final class AppState: ObservableObject {
                         $0.identifier?.rawValue == "onboarding" && $0.isKeyWindow
                     }
                     if command == .cancel {
-                        self.status = .idle  // 폐기 — 삽입·히스토리·브로드캐스트 없음
+                        // 폐기 — 삽입·히스토리·브로드캐스트 없음. 유일한 피드백은
+                        // 확인음(화면 신호가 없는 경로라 소리가 폐기 사실을 알린다).
+                        SoundPlayer.shared.playCommand()
+                        self.status = .idle
                     } else if finalText.isEmpty, let command {
                         // 명령 단독 발화("엔터") — 붙여넣기 없이 키만
-                        if !onboardingActive { TextInserter.press(command) }
+                        if !onboardingActive {
+                            TextInserter.press(command)
+                            SoundPlayer.shared.playCommand()
+                        }
                         self.status = .idle
                     } else if finalText.isEmpty || SpeechGate.isJunk(finalText) {
                         self.showNoSpeech()  // 무음·잡음·환각 토큰 — 삽입하지 않음 (스펙)
@@ -225,6 +231,7 @@ final class AppState: ObservableObject {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                                         guard let self, case .idle = self.status else { return }
                                         TextInserter.press(command)
+                                        SoundPlayer.shared.playCommand()
                                     }
                                 }
                             }
