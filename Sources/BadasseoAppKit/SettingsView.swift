@@ -4,10 +4,10 @@ import BadasseoCore
 
 struct SettingsView: View {
     enum Pane: String, CaseIterable, Identifiable, Hashable {
-        case general, dictionary, history
+        case general, commands, dictionary, history
         var id: String { rawValue }
-        var title: String { ["general":"일반","dictionary":"사전","history":"히스토리"][rawValue]! }
-        var symbol: String { ["general":"gearshape","dictionary":"character.book.closed","history":"clock"][rawValue]! }
+        var title: String { ["general":"일반","commands":"음성 명령","dictionary":"사전","history":"히스토리"][rawValue]! }
+        var symbol: String { ["general":"gearshape","commands":"arrow.turn.down.left","dictionary":"character.book.closed","history":"clock"][rawValue]! }
     }
     @State private var pane: Pane = .general
     var body: some View {
@@ -23,6 +23,7 @@ struct SettingsView: View {
             Group {
                 switch pane {
                 case .general: GeneralTab()
+                case .commands: CommandsTab()
                 case .dictionary: DictionaryTab()
                 case .history: HistoryTab()
                 }
@@ -134,6 +135,62 @@ struct GeneralTab: View {
             Spacer()
         }
         .padding(.horizontal, 20)
+    }
+}
+
+/// 음성 명령 — 발화 끝 키워드로 키 입력·취소를 실행. 트리거 단어는 명령별 커스텀.
+struct CommandsTab: View {
+    @AppStorage(VoiceCommandSettings.enabledKey) private var enabled = true
+
+    var body: some View {
+        VStack(spacing: 14) {
+            SettingsCard(title: "음성 명령") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Toggle("발화 끝 명령어 인식", isOn: $enabled)
+                    Text("발화의 마지막 단어가 명령어면, 그 단어를 빼고 입력한 뒤 동작을 실행해요. 예: \"확인했습니다 엔터\" → 텍스트 입력 후 Enter 키.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+            }
+            SettingsCard(title: "명령어") {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(VoiceCommand.allCases, id: \.rawValue) { command in
+                        CommandTriggerRow(command: command)
+                    }
+                    Text("쉼표로 구분해 여러 단어를 등록할 수 있어요 (예: 엔터, 전송, 보내기). 비우면 그 명령은 꺼져요.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                .disabled(!enabled)
+                .opacity(enabled ? 1 : 0.5)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+    }
+}
+
+/// 명령 한 줄: 라벨 + 트리거 단어 입력칸. 편집 즉시 UserDefaults 저장 (사전 탭과 동일 패턴).
+struct CommandTriggerRow: View {
+    let command: VoiceCommand
+    @State private var words: String
+
+    init(command: VoiceCommand) {
+        self.command = command
+        _words = State(initialValue:
+            UserDefaults.standard.string(forKey: VoiceCommandSettings.triggersKey(command))
+            ?? command.defaultTrigger)
+    }
+
+    var body: some View {
+        HStack {
+            Text(command.displayName)
+                .frame(width: 160, alignment: .leading)
+            TextField("예: \(command.defaultTrigger)", text: $words)
+                .textFieldStyle(.roundedBorder)
+                .onChange(of: words) { _, newValue in
+                    UserDefaults.standard.set(
+                        newValue, forKey: VoiceCommandSettings.triggersKey(command))
+                }
+        }
     }
 }
 
