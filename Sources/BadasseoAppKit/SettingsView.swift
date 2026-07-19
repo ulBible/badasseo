@@ -54,8 +54,18 @@ struct SettingsCard<Content: View>: View {
 /// 단축키·사운드·시작 설정.
 struct GeneralTab: View {
     @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
-    @AppStorage("soundFeedback") private var soundFeedback = true
+    @AppStorage(SoundPlayer.startKey) private var soundStart = true
+    @AppStorage(SoundPlayer.stopKey) private var soundStop = true
+    @AppStorage(SoundPlayer.commandKey) private var soundCommand = true
     @AppStorage(HoldKey.defaultsKey) private var holdKey = HoldKey.rightCommand.rawValue
+
+    init() {
+        // 개별 키 미존재 시 기존 통합 토글("soundFeedback")을 기본값으로 —
+        // SoundPlayer.isEnabled의 폴백과 같은 규칙 (과거에 꺼둔 사용자 유지).
+        _soundStart = AppStorage(wrappedValue: SoundPlayer.isEnabled(SoundPlayer.startKey), SoundPlayer.startKey)
+        _soundStop = AppStorage(wrappedValue: SoundPlayer.isEnabled(SoundPlayer.stopKey), SoundPlayer.stopKey)
+        _soundCommand = AppStorage(wrappedValue: SoundPlayer.isEnabled(SoundPlayer.commandKey), SoundPlayer.commandKey)
+    }
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var launchAtLoginError: String?
     /// 아래 revert가 스스로 트리거하는 onChange를 사용자 조작과 구분하는 가드.
@@ -102,8 +112,10 @@ struct GeneralTab: View {
             }
             SettingsCard(title: "사운드") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Toggle("입력 시작/종료음", isOn: $soundFeedback)
-                    Text("녹음 시작/종료에 절제된 키 사운드가 재생돼요. 끄면 완전 무음으로 동작해요.")
+                    Toggle("인식 시작음", isOn: $soundStart)
+                    Toggle("인식 종료음", isOn: $soundStop)
+                    Toggle("음성 명령 실행음", isOn: $soundCommand)
+                    Text("각 소리를 개별적으로 켜고 끌 수 있어요. 모두 끄면 완전 무음으로 동작해요.")
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
