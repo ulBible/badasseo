@@ -13,3 +13,6 @@ bench/blind_key.json
 dist/
 Resources/BadasseoAppStore.provisionprofile
 CLAUDE.local.md
+
+# 내부 설계 문서는 공개 repo에 올리지 않는다 (2026-07-17 퍼지 정책) — .superpowers/docs/에 보관
+docs/superpowers/
