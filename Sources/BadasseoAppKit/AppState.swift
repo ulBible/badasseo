@@ -211,8 +211,11 @@ final class AppState: ObservableObject {
                                 Notifier.copiedOnly()  // 키 합성도 불가한 상태 — 명령 생략
                             case .pasted:
                                 if let command {
-                                    // 대상 앱이 ⌘V를 소화한 뒤 키가 도착해야 한다 (스펙: 0.25초)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                    // 대상 앱이 ⌘V를 소화한 뒤 키가 도착해야 한다 (스펙: 0.25초).
+                                    // 그 사이 새 녹음이 시작됐으면(상태 변화) 키를 쏘지 않는다 —
+                                    // 지연된 Return이 다른 맥락에 꽂히는 사고 방지.
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                                        guard let self, case .idle = self.status else { return }
                                         TextInserter.press(command)
                                     }
                                 }
