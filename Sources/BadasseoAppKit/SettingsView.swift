@@ -255,31 +255,51 @@ struct DictionaryTab: View {
     }
 }
 
-/// 최근 전사 결과 열람·복사·삭제.
+/// 최근 전사 결과 열람·검색·복사·삭제.
 struct HistoryTab: View {
     @State private var entries: [HistoryEntry] = []
+    @State private var query = ""
+    /// 키워드 필터 — 대소문자 무시. 표시·복사·카운트 모두 이 목록 기준.
+    private var filtered: [HistoryEntry] {
+        query.isEmpty ? entries
+            : entries.filter { $0.text.localizedCaseInsensitiveContains(query) }
+    }
     var body: some View {
         SettingsCard(title: "최근 인식된 텍스트") {
             VStack(alignment: .leading, spacing: 10) {
                 Text("최대 500개까지 이 맥에만 저장돼요.")
                     .font(.callout).foregroundStyle(.secondary)
-                List(entries.indices, id: \.self) { i in
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    TextField("키워드 검색", text: $query)
+                        .textFieldStyle(.plain)
+                    if !query.isEmpty {
+                        Button {
+                            query = ""
+                        } label: { Image(systemName: "xmark.circle.fill") }
+                            .buttonStyle(.borderless).foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(6)
+                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 7))
+                List(filtered.indices, id: \.self) { i in
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(entries[i].text).lineLimit(2)
-                            Text(entries[i].date, style: .date).font(.caption2).foregroundStyle(.tertiary)
+                            Text(filtered[i].text).lineLimit(2)
+                            Text(filtered[i].date, style: .date).font(.caption2).foregroundStyle(.tertiary)
                         }
                         Spacer()
                         Button {
                             let pb = NSPasteboard.general
                             pb.clearContents()
-                            pb.setString(entries[i].text, forType: .string)  // 의도된 복사 — 마커 없음
+                            pb.setString(filtered[i].text, forType: .string)  // 의도된 복사 — 마커 없음
                         } label: { Image(systemName: "doc.on.doc") }.buttonStyle(.borderless)
                     }
                 }
                 .frame(maxHeight: .infinity)
                 HStack {
-                    Text("\(entries.count)개").font(.caption).foregroundStyle(.secondary)
+                    Text(query.isEmpty ? "\(entries.count)개" : "\(entries.count)개 중 \(filtered.count)개")
+                        .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button("모두 지우기", role: .destructive) {
                         HistoryStore.standard.clear()
