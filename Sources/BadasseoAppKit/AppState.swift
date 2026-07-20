@@ -153,15 +153,11 @@ final class AppState: ObservableObject {
         guard !SpeechGate.isSilence(samples: samples) else { showNoSpeech(); return }  // 무음 — 전사 생략
         SoundPlayer.shared.playStop()
         let dict = dictionary.load()
-        var terms = dictionary.promptTerms()
-        // 음성 명령이 켜져 있으면 활성 트리거 단어를 whisper initial prompt에 포함 —
-        // 명령어("줄바꿈" 등)가 유사 발음("출바꿈")으로 오인식되는 것을 줄인다.
-        if VoiceCommandSettings.isEnabled() {
-            for word in VoiceCommandSettings.triggers().values.joined()
-            where !terms.contains(word) {
-                terms.append(word)
-            }
-        }
+        let terms = dictionary.promptTerms()
+        // 주의: 명령 트리거 단어를 initial prompt에 넣지 말 것 — 넣었더니 불명확한
+        // 발화 구간에 트리거 단어가 쉼표까지 딸린 채 환각 삽입됐다("… 뉴라인, 또 …",
+        // 2026-07-20 실사용 보고). 명령어 오인식("줄바꿈"→"출바꿈")은 그 표기를
+        // 동의어로 등록해 해결한다 — 본문 오염 없는 유일한 경로.
         // 모델 로드(1.6GB whisper_init)는 반드시 메인 스레드 밖에서 — @MainActor 메서드로
         // 감싸면 detached여도 로드가 메인으로 홉해서 UI가 얼어붙는다.
         // 로드는 single-flight: 이미 진행 중이면 그 Task의 결과를 기다린다(주석 참고: engineLoad).

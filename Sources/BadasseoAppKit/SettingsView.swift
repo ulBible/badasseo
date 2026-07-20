@@ -170,6 +170,8 @@ struct CommandsTab: View {
                     }
                     Text("쉼표로 구분해 여러 단어를 등록할 수 있어요 (예: 엔터, 전송, 보내기). 비우면 그 명령은 꺼져요.")
                         .font(.callout).foregroundStyle(.secondary)
+                    Text("명령어가 자꾸 다른 표기로 인식되면(예: 줄바꿈 → 출바꿈), 히스토리에서 실제 인식된 표기를 확인해 그 표기도 함께 등록하세요.")
+                        .font(.callout).foregroundStyle(.tertiary)
                 }
                 .disabled(!enabled)
                 .opacity(enabled ? 1 : 0.5)
