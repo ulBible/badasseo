@@ -114,8 +114,15 @@ ditto -c -k --keepParent "${APP_BUNDLE}" "${ZIP_PATH}"
 echo "==> Gatekeeper check"
 spctl --assess --type exec --verbose=2 "${APP_BUNDLE}"
 
-# Keep dist/ to archives only before appcast generation scans it.
+# Keep dist/ to archives only before appcast generation scans it (a stray
+# bundle there confuses generate_appcast). The signed, stapled app moves out
+# of dist/ rather than being deleted — the DMG step below still needs it.
+SIGNED_APP="build/signed/${APP_NAME}.app"
+rm -rf "build/signed"
+mkdir -p "build/signed"
+mv "${APP_BUNDLE}" "${SIGNED_APP}"
 rm -rf "${DIST_DIR}/stage"
+APP_BUNDLE="${SIGNED_APP}"
 
 echo "==> Generating Sparkle appcast"
 # The Sparkle SPM artifact ships the CLI tools; the EdDSA private key lives in
@@ -135,6 +142,26 @@ fi
   --download-url-prefix "https://github.com/ulBible/badasseo/releases/download/v${VERSION}/" \
   --link "https://github.com/ulBible/badasseo"
 
-echo "==> Done: ${ZIP_PATH} + ${DIST_DIR}/appcast.xml"
-echo "Publish BOTH files (the app reads appcast.xml from the latest release):"
-echo "  gh release create v${VERSION} ${ZIP_PATH} ${DIST_DIR}/appcast.xml"
+# Human downloads ship as a DMG: no unzip step, so third-party archive tools
+# can't strip the signature metadata (seen in the wild with vClips' 1.2.3 zip —
+# Gatekeeper then hard-blocks with no "Open" button). Sparkle keeps using the
+# zip, which is why the DMG is built AFTER generate_appcast has scanned dist/.
+echo "==> Building DMG (drag-to-Applications)"
+DMG_PATH="${DIST_DIR}/${APP_NAME}-${VERSION}.dmg"
+DMG_ROOT="${DIST_DIR}/dmg-root"
+rm -rf "${DMG_ROOT}"
+mkdir -p "${DMG_ROOT}"
+ditto "${APP_BUNDLE}" "${DMG_ROOT}/${APP_NAME}.app"
+ln -s /Applications "${DMG_ROOT}/Applications"
+hdiutil create -volname "${APP_NAME}" -srcfolder "${DMG_ROOT}" -ov -format UDZO -quiet "${DMG_PATH}"
+rm -rf "${DMG_ROOT}"
+codesign --force --timestamp --sign "${DEV_ID}" "${DMG_PATH}"
+
+echo "==> Notarizing DMG"
+xcrun notarytool submit "${DMG_PATH}" \
+  --keychain-profile "${NOTARY_PROFILE}" --wait
+xcrun stapler staple "${DMG_PATH}"
+
+echo "==> Done: ${ZIP_PATH} + ${DMG_PATH} + ${DIST_DIR}/appcast.xml"
+echo "Publish all three (Sparkle reads appcast.xml + zip; humans download the DMG):"
+echo "  gh release create v${VERSION} ${ZIP_PATH} ${DMG_PATH} ${DIST_DIR}/appcast.xml"

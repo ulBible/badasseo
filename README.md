@@ -61,8 +61,8 @@ Homebrew 한 줄이면 됩니다:
 brew install --cask ulBible/tap/badasseo
 ```
 
-또는 [Releases](https://github.com/ulBible/badasseo/releases)에서 최신 `Badasseo-x.y.z.zip`을
-내려받아 압축을 풀고 `Badasseo.app`을 `/Applications`로 드래그하세요. macOS 14 이상 필요.
+또는 [Releases](https://github.com/ulBible/badasseo/releases)에서 최신 `Badasseo-x.y.z.dmg`를
+내려받아 열고 `Badasseo.app`을 `Applications`로 드래그하세요. macOS 14 이상 필요.
 
 받아써는 스스로 최신 상태를 유지합니다 — 백그라운드에서 새 릴리스를 확인하고(Sparkle)
 있으면 알려줍니다. 메뉴바 아이콘 → **업데이트 확인…**으로 수동 확인도 가능합니다.

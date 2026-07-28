@@ -63,9 +63,9 @@ One line with Homebrew:
 brew install --cask ulBible/tap/badasseo
 ```
 
-Or download the latest `Badasseo-x.y.z.zip` from
-[Releases](https://github.com/ulBible/badasseo/releases), unzip, and drag
-`Badasseo.app` into `/Applications`. Requires macOS 14+.
+Or download the latest `Badasseo-x.y.z.dmg` from
+[Releases](https://github.com/ulBible/badasseo/releases), open it, and drag
+`Badasseo.app` into `Applications`. Requires macOS 14+.
 
 Badasseo keeps itself up to date: it checks the latest release in the
 background (Sparkle) and offers new versions as they ship. You can also check
