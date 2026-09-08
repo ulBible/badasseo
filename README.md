@@ -13,6 +13,10 @@
 </p>
 
 <p align="center">
+  → <a href="https://chakchak.works/ko/apps/badasseo">https://chakchak.works/ko/apps/badasseo</a>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
   <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-orange" alt="Apple Silicon">
