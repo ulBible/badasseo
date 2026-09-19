@@ -141,7 +141,7 @@ struct StepBar: View {
     let current: Int
     var onSelect: ((Int) -> Void)?
     @Environment(\.colorScheme) private var scheme
-    private let labels = ["환영", "모델", "마이크", "단축키", "첫 발화"]
+    private let labels = [L("환영"), L("모델"), L("마이크"), L("단축키"), L("첫 발화")]
 
     var body: some View {
         HStack(spacing: 4) {
@@ -210,7 +210,7 @@ struct ProcessDiagram: View {
             Image(systemName: "arrow.right").foregroundStyle(.secondary)
             ListeningWave()
             Image(systemName: "arrow.right").foregroundStyle(.secondary)
-            Text("안녕하세요|").font(.system(size: 14, design: .monospaced))
+            Text(L("안녕하세요|")).font(.system(size: 14, design: .monospaced))
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
         }

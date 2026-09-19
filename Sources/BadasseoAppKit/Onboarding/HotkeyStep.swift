@@ -17,7 +17,7 @@ struct HotkeyStep: View {
     var body: some View {
         VStack(spacing: 12) {
             IconBadge(symbol: "command")
-            Text("어떻게 말을 걸까요?").font(.system(size: 19, weight: .heavy))
+            Text(L("어떻게 말을 걸까요?")).font(.system(size: 19, weight: .heavy))
 
             if isAppStoreVariant {
                 optionSpaceCard
@@ -27,8 +27,8 @@ struct HotkeyStep: View {
                 optionSpaceCard
             }
 
-            OnboardingPrimaryButton(title: "다음") { model.next() }
-            Button("나중에 결정하기 — 설정에서 언제든 바꿀 수 있어요") { model.next() }
+            OnboardingPrimaryButton(title: L("다음")) { model.next() }
+            Button(L("나중에 결정하기 — 설정에서 언제든 바꿀 수 있어요")) { model.next() }
                 .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
         }
         .glassPanel()
@@ -62,40 +62,40 @@ struct HotkeyStep: View {
             HStack {
                 Image(systemName: hotkeyMode == "rightCommand" ? "largecircle.fill.circle" : "circle")
                     .foregroundStyle(isAppStoreVariant ? .secondary : OnboardingTheme.green)
-                Text("우측 ⌘ 누르고 말하기")
+                Text(L("우측 ⌘ 누르고 말하기"))
                     .font(.system(size: isAppStoreVariant ? 13 : 14, weight: isAppStoreVariant ? .semibold : .bold))
                     .foregroundStyle(isAppStoreVariant ? .secondary : .primary)
                 if !isAppStoreVariant {
-                    Text("권장").font(.system(size: 10))
+                    Text(L("권장")).font(.system(size: 10))
                         .padding(.horizontal, 6).padding(.vertical, 1)
                         .background(OnboardingTheme.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                         .foregroundStyle(OnboardingTheme.green)
                 }
             }
-            Text("놀고 있는 오른쪽 ⌘ 하나로. 말이 끝나면 커서 위치에 바로 입력돼요.")
+            Text(L("놀고 있는 오른쪽 ⌘ 하나로. 말이 끝나면 커서 위치에 바로 입력돼요."))
                 .font(.system(size: isAppStoreVariant ? 11.5 : 12))
                 .foregroundStyle(isAppStoreVariant ? .tertiary : .secondary)
             if isAppStoreVariant {
-                Text("손쉬운 사용 권한이 필요한 고급 옵션이에요.")
+                Text(L("손쉬운 사용 권한이 필요한 고급 옵션이에요."))
                     .font(.system(size: 11)).foregroundStyle(.tertiary)
             }
             if axTrusted {
-                Label("손쉬운 사용: 켜짐", systemImage: "checkmark.circle.fill")
+                Label(L("손쉬운 사용: 켜짐"), systemImage: "checkmark.circle.fill")
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(OnboardingTheme.green)
             } else {
-                Label("손쉬운 사용: 꺼짐", systemImage: "xmark.circle.fill")
+                Label(L("손쉬운 사용: 꺼짐"), systemImage: "xmark.circle.fill")
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(.orange)
                 HStack(spacing: 8) {
-                    Button("손쉬운 사용 허용하기") { promptAX() }
+                    Button(L("손쉬운 사용 허용하기")) { promptAX() }
                         .buttonStyle(.borderedProminent).tint(OnboardingTheme.green).controlSize(.small)
-                    Text("단축키 감지·자동 입력에 이 권한 하나만 써요")
+                    Text(L("단축키 감지·자동 입력에 이 권한 하나만 써요"))
                         .font(.system(size: 11)).foregroundStyle(.tertiary)
                 }
                 if didPrompt {
-                    Text("시스템 설정이 열렸어요. 목록에서 '받아써'를 찾아\n스위치를 켜면 자동으로 다음으로 넘어가요.")
+                    Text(L("시스템 설정이 열렸어요. 목록에서 '받아써'를 찾아\n스위치를 켜면 자동으로 다음으로 넘어가요."))
                         .font(.callout).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("설정 다시 열기") { reopenSettings() }
+                    Button(L("설정 다시 열기")) { reopenSettings() }
                         .buttonStyle(.bordered).controlSize(.small)
                 }
             }
@@ -119,17 +119,17 @@ struct HotkeyStep: View {
             HStack {
                 Image(systemName: hotkeyMode == "custom" ? "largecircle.fill.circle" : "circle")
                     .foregroundStyle(isAppStoreVariant ? OnboardingTheme.green : .secondary)
-                Text("⌥Space + 직접 ⌘V")
+                Text(L("⌥Space + 직접 ⌘V"))
                     .font(.system(size: isAppStoreVariant ? 14 : 13, weight: isAppStoreVariant ? .bold : .semibold))
                     .foregroundStyle(isAppStoreVariant ? .primary : .secondary)
                 if isAppStoreVariant {
-                    Text("권한 없이 바로 사용 (권장)").font(.system(size: 10))
+                    Text(L("권한 없이 바로 사용 (권장)")).font(.system(size: 10))
                         .padding(.horizontal, 6).padding(.vertical, 1)
                         .background(OnboardingTheme.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                         .foregroundStyle(OnboardingTheme.green)
                 }
             }
-            Text("권한 없이 사용. 전사 결과가 클립보드에 담겨요.")
+            Text(L("권한 없이 사용. 전사 결과가 클립보드에 담겨요."))
                 .font(.system(size: isAppStoreVariant ? 12 : 11.5))
                 .foregroundStyle(isAppStoreVariant ? .secondary : .tertiary)
         }

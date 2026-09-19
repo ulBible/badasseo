@@ -35,6 +35,9 @@ cursor. No server, no account, no subscription. Optimized for Korean but not
 Korean-only — mixed Korean-English sentences and even full English sentences come
 out as spoken.
 
+The app's UI follows your macOS system language (Korean · English); dictation
+itself stays Korean-only — see below.
+
 ## What's different
 
 - **It just works after install** — the language is fixed to Korean. Auto language

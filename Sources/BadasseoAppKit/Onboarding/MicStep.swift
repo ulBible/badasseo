@@ -9,15 +9,15 @@ struct MicStep: View {
     var body: some View {
         VStack(spacing: 12) {
             IconBadge(symbol: "mic.fill")
-            Text("목소리를 들을 수 있게 해주세요").font(.system(size: 19, weight: .heavy))
-            Text("녹음은 단축키를 누르는 동안에만.\n소리는 처리 즉시 사라지고, 이 맥 밖으로 나가지 않아요.")
+            Text(L("목소리를 들을 수 있게 해주세요")).font(.system(size: 19, weight: .heavy))
+            Text(L("녹음은 단축키를 누르는 동안에만.\n소리는 처리 즉시 사라지고, 이 맥 밖으로 나가지 않아요."))
                 .font(.system(size: 12.5)).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center).lineSpacing(4)
             if granted {
-                Label("허용됨", systemImage: "checkmark.circle.fill").foregroundStyle(OnboardingTheme.green)
-                OnboardingPrimaryButton(title: "다음") { model.next() }
+                Label(L("허용됨"), systemImage: "checkmark.circle.fill").foregroundStyle(OnboardingTheme.green)
+                OnboardingPrimaryButton(title: L("다음")) { model.next() }
             } else {
-                OnboardingPrimaryButton(title: "마이크 허용") {
+                OnboardingPrimaryButton(title: L("마이크 허용")) {
                     AVCaptureDevice.requestAccess(for: .audio) { ok in
                         Task { @MainActor in
                             granted = ok
@@ -32,7 +32,7 @@ struct MicStep: View {
                         }
                     }
                 }
-                Text("macOS 권한 창이 떠요").font(.system(size: 11)).foregroundStyle(.tertiary)
+                Text(L("macOS 권한 창이 떠요")).font(.system(size: 11)).foregroundStyle(.tertiary)
             }
         }
         .glassPanel()

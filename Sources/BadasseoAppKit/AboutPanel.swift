@@ -110,7 +110,7 @@ enum AboutPanel {
         text.append(mark)
         text.append(NSAttributedString(string: "\n", attributes: secondary))
         text.append(NSAttributedString(
-            string: "키보드 대신 말로. 전 과정이 내 맥 안에서.\n", attributes: body))
+            string: L("키보드 대신 말로. 전 과정이 내 맥 안에서.") + "\n", attributes: body))
         let creditGap = NSMutableParagraphStyle()
         creditGap.alignment = .center
         creditGap.lineSpacing = 2

@@ -6,7 +6,9 @@ struct SettingsView: View {
     enum Pane: String, CaseIterable, Identifiable, Hashable {
         case general, commands, dictionary, history
         var id: String { rawValue }
-        var title: String { ["general":"일반","commands":"음성 명령","dictionary":"사전","history":"히스토리"][rawValue]! }
+        var title: String {
+            ["general": L("일반"), "commands": L("음성 명령"), "dictionary": L("사전"), "history": L("히스토리")][rawValue]!
+        }
         var symbol: String { ["general":"gearshape","commands":"arrow.turn.down.left","dictionary":"character.book.closed","history":"clock"][rawValue]! }
     }
     @State private var pane: Pane = .general
@@ -75,17 +77,17 @@ struct GeneralTab: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            SettingsCard(title: "음성 입력 단축키") {
+            SettingsCard(title: L("음성 입력 단축키")) {
                 VStack(alignment: .leading, spacing: 10) {
                     // "(기본)" 라벨은 변형별 실제 기본과 일치해야 한다 — MAS는 ⌥Space(custom)가
                     // 기본(온보딩 프리셀렉트·심사 노트와 동일 축), GitHub은 우측 ⌘.
                     Picker("", selection: $hotkeyMode) {
                         if BuildVariant.current == .appStore {
-                            Text("우측 ⌘ 누르고 말하기 (고급 — 손쉬운 사용 권한 필요)").tag("rightCommand")
-                            Text("단축키 조합 (기본 ⌥Space)").tag("custom")
+                            Text(L("우측 ⌘ 누르고 말하기 (고급 — 손쉬운 사용 권한 필요)")).tag("rightCommand")
+                            Text(L("단축키 조합 (기본 ⌥Space)")).tag("custom")
                         } else {
-                            Text("우측 ⌘ 누르고 말하기 (기본)").tag("rightCommand")
-                            Text("사용자 지정 조합").tag("custom")
+                            Text(L("우측 ⌘ 누르고 말하기 (기본)")).tag("rightCommand")
+                            Text(L("사용자 지정 조합")).tag("custom")
                         }
                     }
                     .pickerStyle(.radioGroup).labelsHidden()
@@ -95,33 +97,33 @@ struct GeneralTab: View {
                         else { KeyboardShortcuts.disable(.pushToTalk) }
                     }
                     if hotkeyMode == "rightCommand" {
-                        Picker("홀드 키", selection: $holdKey) {
-                            ForEach(HoldKey.allCases, id: \.rawValue) { k in Text(k.displayName).tag(k.rawValue) }
+                        Picker(L("홀드 키"), selection: $holdKey) {
+                            ForEach(HoldKey.allCases, id: \.rawValue) { k in Text(L(String.LocalizationValue(k.displayName))).tag(k.rawValue) }
                         }.pickerStyle(.menu).frame(maxWidth: 200)
-                        Text("외부 키보드에 우측 ⌘가 없다면 다른 키를 선택하세요.")
+                        Text(L("외부 키보드에 우측 ⌘가 없다면 다른 키를 선택하세요."))
                             .font(.callout).foregroundStyle(.secondary)
                     }
                     if hotkeyMode == "custom" {
-                        KeyboardShortcuts.Recorder("조합 키", name: .pushToTalk)
+                        KeyboardShortcuts.Recorder(L("조합 키"), name: .pushToTalk)
                     }
                     Text(hotkeyMode == "rightCommand"
-                         ? "\((HoldKey(rawValue: holdKey) ?? .rightCommand).displayName)만 눌러 유지하는 동안 녹음돼요. 다른 키와 조합하면 녹음되지 않아요."
-                         : "지정한 조합을 누르고 있는 동안 녹음돼요.")
+                         ? L("\(L(String.LocalizationValue((HoldKey(rawValue: holdKey) ?? .rightCommand).displayName)))만 눌러 유지하는 동안 녹음돼요. 다른 키와 조합하면 녹음되지 않아요.")
+                         : L("지정한 조합을 누르고 있는 동안 녹음돼요."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
-            SettingsCard(title: "사운드") {
+            SettingsCard(title: L("사운드")) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Toggle("인식 시작음", isOn: $soundStart)
-                    Toggle("인식 종료음", isOn: $soundStop)
-                    Toggle("음성 명령 실행음", isOn: $soundCommand)
-                    Text("각 소리를 개별적으로 켜고 끌 수 있어요. 모두 끄면 완전 무음으로 동작해요.")
+                    Toggle(L("인식 시작음"), isOn: $soundStart)
+                    Toggle(L("인식 종료음"), isOn: $soundStop)
+                    Toggle(L("음성 명령 실행음"), isOn: $soundCommand)
+                    Text(L("각 소리를 개별적으로 켜고 끌 수 있어요. 모두 끄면 완전 무음으로 동작해요."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
-            SettingsCard(title: "시작") {
+            SettingsCard(title: L("시작")) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Toggle("로그인 시 자동 실행", isOn: $launchAtLogin)
+                    Toggle(L("로그인 시 자동 실행"), isOn: $launchAtLogin)
                         .onChange(of: launchAtLogin) { _, enabled in
                             if revertingLaunchAtLogin { revertingLaunchAtLogin = false; return }
                             do {
@@ -140,7 +142,7 @@ struct GeneralTab: View {
                         Text(launchAtLoginError)
                             .font(.callout).foregroundStyle(.red)
                     }
-                    Text("맥을 켜면 받아써가 메뉴바에 자동으로 상주해요.")
+                    Text(L("맥을 켜면 받아써가 메뉴바에 자동으로 상주해요."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
@@ -156,21 +158,21 @@ struct CommandsTab: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            SettingsCard(title: "음성 명령") {
+            SettingsCard(title: L("음성 명령")) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Toggle("발화 끝 명령어 인식", isOn: $enabled)
-                    Text("발화의 마지막 단어가 명령어면, 그 단어를 빼고 입력한 뒤 동작을 실행해요. 예: \"확인했습니다 엔터\" → 텍스트 입력 후 Enter 키.")
+                    Toggle(L("발화 끝 명령어 인식"), isOn: $enabled)
+                    Text(L("발화의 마지막 단어가 명령어면, 그 단어를 빼고 입력한 뒤 동작을 실행해요. 예: \"확인했습니다 엔터\" → 텍스트 입력 후 Enter 키."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
-            SettingsCard(title: "명령어") {
+            SettingsCard(title: L("명령어")) {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(VoiceCommand.allCases, id: \.rawValue) { command in
                         CommandTriggerRow(command: command)
                     }
-                    Text("쉼표로 구분해 여러 단어를 등록할 수 있어요 (예: 엔터, 전송, 보내기). 비우면 그 명령은 꺼져요.")
+                    Text(L("쉼표로 구분해 여러 단어를 등록할 수 있어요 (예: 엔터, 전송, 보내기). 비우면 그 명령은 꺼져요."))
                         .font(.callout).foregroundStyle(.secondary)
-                    Text("명령어가 자꾸 다른 표기로 인식되면(예: 줄바꿈 → 출바꿈), 히스토리에서 실제 인식된 표기를 확인해 그 표기도 함께 등록하세요.")
+                    Text(L("명령어가 자꾸 다른 표기로 인식되면(예: 줄바꿈 → 출바꿈), 히스토리에서 실제 인식된 표기를 확인해 그 표기도 함께 등록하세요."))
                         .font(.callout).foregroundStyle(.tertiary)
                 }
                 .disabled(!enabled)
@@ -197,14 +199,14 @@ struct CommandTriggerRow: View {
     var body: some View {
         // 사전 탭("말한 것 → 쓸 것")과 같은 방향: 말하는 단어 → 실행되는 동작.
         HStack {
-            TextField("예: \(command.defaultTrigger)", text: $words)
+            TextField(L("예: \(command.defaultTrigger)"), text: $words)
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: words) { _, newValue in
                     UserDefaults.standard.set(
                         newValue, forKey: VoiceCommandSettings.triggersKey(command))
                 }
             Image(systemName: "arrow.right").foregroundStyle(.tertiary)
-            Text(command.displayName)
+            Text(L(String.LocalizationValue(command.displayName)))
                 .frame(width: 160, alignment: .leading)
         }
     }
@@ -215,16 +217,16 @@ struct DictionaryTab: View {
     @State private var rows: [DictionaryRows.Row] = []
 
     var body: some View {
-        SettingsCard(title: "커스텀 사전") {
+        SettingsCard(title: L("커스텀 사전")) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("말한 것을 원하는 표기로 바꿔요. 예: \"깃허브\" → \"GitHub\"")
+                Text(L("말한 것을 원하는 표기로 바꿔요. 예: \"깃허브\" → \"GitHub\""))
                     .font(.callout).foregroundStyle(.secondary)
                 List {
                     ForEach($rows) { $row in
                         HStack {
-                            TextField("말한 것", text: $row.spoken)
+                            TextField(L("말한 것"), text: $row.spoken)
                             Image(systemName: "arrow.right").foregroundStyle(.tertiary)
-                            TextField("쓸 것", text: $row.written)
+                            TextField(L("쓸 것"), text: $row.written)
                             Button {
                                 rows.removeAll { $0.id == row.id }
                             } label: { Image(systemName: "minus.circle") }
@@ -237,9 +239,9 @@ struct DictionaryTab: View {
                 HStack {
                     Button {
                         rows.append(DictionaryRows.Row(spoken: "", written: ""))
-                    } label: { Label("추가", systemImage: "plus") }
+                    } label: { Label(L("추가"), systemImage: "plus") }
                     Spacer()
-                    Button("기본 사전 복원") {
+                    Button(L("기본 사전 복원")) {
                         rows = DictionaryRows.rows(from: UserDictionary.defaultSeed)
                     }
                 }
@@ -265,13 +267,13 @@ struct HistoryTab: View {
             : entries.filter { $0.text.localizedCaseInsensitiveContains(query) }
     }
     var body: some View {
-        SettingsCard(title: "최근 인식된 텍스트") {
+        SettingsCard(title: L("최근 인식된 텍스트")) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("최대 500개까지 이 맥에만 저장돼요.")
+                Text(L("최대 500개까지 이 맥에만 저장돼요."))
                     .font(.callout).foregroundStyle(.secondary)
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("키워드 검색", text: $query)
+                    TextField(L("키워드 검색"), text: $query)
                         .textFieldStyle(.plain)
                     if !query.isEmpty {
                         Button {
@@ -298,10 +300,12 @@ struct HistoryTab: View {
                 }
                 .frame(maxHeight: .infinity)
                 HStack {
-                    Text(query.isEmpty ? "\(entries.count)개" : "\(entries.count)개 중 \(filtered.count)개")
+                    Text(query.isEmpty
+                         ? L("\(entries.count)개")
+                         : String(format: L("%1$lld개 중 %2$lld개"), entries.count, filtered.count))
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Button("모두 지우기", role: .destructive) {
+                    Button(L("모두 지우기"), role: .destructive) {
                         HistoryStore.standard.clear()
                         entries = []
                     }

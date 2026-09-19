@@ -3,6 +3,10 @@ import PackageDescription
 
 let package = Package(
     name: "Badasseo",
+    // Source language = Korean. English is the one bundled translation (see
+    // Sources/BadasseoAppKit/Resources/Localizable.xcstrings); unsupported
+    // languages fall back to Korean.
+    defaultLocalization: "ko",
     platforms: [.macOS(.v14)],
     products: [
         // GitHub-release variant.

@@ -29,7 +29,7 @@ final class OnboardingModel: ObservableObject {
         func attempt() {
             NSApp.activate(ignoringOtherApps: true)
             if let w = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" })
-                ?? NSApp.windows.first(where: { $0.title == "받아써 시작하기" }) {
+                ?? NSApp.windows.first(where: { $0.title == L("받아써 시작하기") }) {
                 w.makeKeyAndOrderFront(nil)
                 w.orderFrontRegardless()   // 활성화가 거부돼도 창은 앞으로
             }
@@ -53,7 +53,7 @@ final class OnboardingModel: ObservableObject {
         if let onboarding = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" }) {
             onboarding.close()
         } else {
-            NSApp.windows.first { $0.title == "받아써 시작하기" }?.close()
+            NSApp.windows.first { $0.title == L("받아써 시작하기") }?.close()
         }
     }
 }

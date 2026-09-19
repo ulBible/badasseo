@@ -88,38 +88,38 @@ public struct BadasseoRootApp: App {
                 Text("⚠️ \(msg)")
             }
             if case .noSpeech = state.status {
-                Text("다시 말해주세요")
+                Text(L("다시 말해주세요"))
             }
             if !state.lastResult.isEmpty {
-                Text("마지막: \(String(state.lastResult.prefix(30)))")
+                Text(L("마지막: \(String(state.lastResult.prefix(30)))"))
             }
             Divider()
             Text(TextInserter.hasAccessibility
-                 ? "붙여넣기: 활성" : "손쉬운 사용 권한 필요 — 클립보드 복사만 동작")
-            Button("설정…") {
+                 ? L("붙여넣기: 활성") : L("손쉬운 사용 권한 필요 — 클립보드 복사만 동작"))
+            Button(L("설정…")) {
                 // 메뉴바 전용(LSUIElement) 앱은 비활성 상태라 설정 창이 뒤에 열림 —
                 // 먼저 앱을 활성화해 창을 포그라운드로.
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "settings")
             }
             .keyboardShortcut(",", modifiers: .command)
-            Button("온보딩 다시 보기") {
+            Button(L("온보딩 다시 보기")) {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "onboarding")
             }
             if let checkForUpdates = badasseoCheckForUpdates {
-                Button("업데이트 확인…") {
+                Button(L("업데이트 확인…")) {
                     // 메뉴바 전용(LSUIElement) 앱은 비활성 상태라 업데이트 창이
                     // 뒤에 열림 — 설정/온보딩과 같은 이유로 먼저 앱을 활성화.
                     NSApp.activate(ignoringOtherApps: true)
                     checkForUpdates()
                 }
             }
-            Button("받아써 정보") {
+            Button(L("받아써 정보")) {
                 AboutPanel.show(showsSupportLink: BuildVariant.current == .github)
             }
             Divider()
-            Button("종료") { NSApp.terminate(nil) }
+            Button(L("종료")) { NSApp.terminate(nil) }
         } label: {
             Group {
                 switch state.status {
@@ -146,19 +146,19 @@ public struct BadasseoRootApp: App {
             // 전역 단축키로 라우팅되지 않음 — 예전 `Settings` scene이 암묵적으로
             // 앱 메뉴에 등록해 주던 전역 ⌘, 동작을 CommandGroup으로 대신 복원.
             CommandGroup(replacing: .appSettings) {
-                Button("설정…") {
+                Button(L("설정…")) {
                     NSApp.activate(ignoringOtherApps: true)
                     openWindow(id: "settings")
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
         }
-        Window("받아써 시작하기", id: "onboarding") {
+        Window(L("받아써 시작하기"), id: "onboarding") {
             OnboardingView()
         }
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
-        Window("설정", id: "settings") {
+        Window(L("설정"), id: "settings") {
             SettingsView()
         }
         .windowStyle(.hiddenTitleBar)

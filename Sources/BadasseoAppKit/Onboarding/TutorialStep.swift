@@ -16,30 +16,30 @@ struct TutorialStep: View {
     var body: some View {
         let ax = TextInserter.hasAccessibility
         VStack(spacing: 12) {
-            Text(success ? "🎉 완벽해요!" : "해볼까요?").font(.system(size: 19, weight: .heavy))
+            Text(success ? L("🎉 완벽해요!") : L("해볼까요?")).font(.system(size: 19, weight: .heavy))
             if !success {
                 if store.state != .ready {
-                    Text("모델을 받는 중이에요 — 조금만 기다려 주세요")
+                    Text(L("모델을 받는 중이에요 — 조금만 기다려 주세요"))
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                     switch store.state {
                     case .downloading(let p):
                         ProgressView(value: p).frame(maxWidth: 240).tint(OnboardingTheme.green)
                     case .failed(let msg):
                         Text(msg).font(.system(size: 11)).foregroundStyle(.red)
-                        Button("다시 받기") { store.startDownload() }
+                        Button(L("다시 받기")) { store.startDownload() }
                             .buttonStyle(.borderedProminent).tint(OnboardingTheme.green).controlSize(.small)
                     default:
                         ProgressView().controlSize(.small)
                     }
                 } else if hotkeyMode == "rightCommand" && !ax {
-                    Text("\(HoldKey.current.displayName) 감지에는 손쉬운 사용 권한이 필요해요.")
+                    Text(L("\(L(String.LocalizationValue(HoldKey.current.displayName))) 감지에는 손쉬운 사용 권한이 필요해요."))
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                    Button("권한 단계로 돌아가기") { model.step = 3 }
+                    Button(L("권한 단계로 돌아가기")) { model.step = 3 }
                         .buttonStyle(.borderedProminent).tint(OnboardingTheme.green).controlSize(.small)
                 } else {
                     ListeningWave()
-                    Text("아래 칸에 커서를 두고, \(keyName) 누른 채\n\"오늘 날씨가 참 좋네요\"라고 말해보세요")
+                    Text(L("아래 칸에 커서를 두고, \(L(String.LocalizationValue(keyName))) 누른 채\n\"오늘 날씨가 참 좋네요\"라고 말해보세요"))
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center).lineSpacing(4)
                 }
@@ -59,16 +59,16 @@ struct TutorialStep: View {
                 }
             // 동의 체크박스는 성공·건너뛰기 어느 경로로 나가든 보여야 한다 —
             // 건너뛰기 쪽에서 안 보이면 무동의 등록(2.4.5(iii))이 재발한다.
-            Toggle("로그인 시 자동 실행", isOn: $model.enableLaunchAtLogin)
+            Toggle(L("로그인 시 자동 실행"), isOn: $model.enableLaunchAtLogin)
                 .toggleStyle(.checkbox).font(.system(size: 12))
             if success {
-                Text("이제 어디서든 이렇게 쓰면 돼요. 메뉴바에서 만나요!")
+                Text(L("이제 어디서든 이렇게 쓰면 돼요. 메뉴바에서 만나요!"))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
-                OnboardingPrimaryButton(title: "받아써 시작") { model.finish() }
+                OnboardingPrimaryButton(title: L("받아써 시작")) { model.finish() }
             } else {
-                Text(!ax ? "말하면 이 칸에 바로 나타나요 (권한이 없어도 튜토리얼은 동작해요)" : " ")
+                Text(!ax ? L("말하면 이 칸에 바로 나타나요 (권한이 없어도 튜토리얼은 동작해요)") : " ")
                     .font(.system(size: 11)).foregroundStyle(.tertiary)
-                Button("건너뛰기") { model.finish() }
+                Button(L("건너뛰기")) { model.finish() }
                     .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
             }
         }

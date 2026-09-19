@@ -113,7 +113,7 @@ final class AppState: ObservableObject {
         // 다운로드 중 단축키를 눌러도 마이크가 켜지거나 시작음이 나지 않아야 한다.
         guard let size = try? FileManager.default.attributesOfItem(atPath: modelPath)[.size] as? Int64,
               size == ModelInfo.byteSize else {
-            status = .error("모델 다운로드가 끝나면 사용할 수 있어요")
+            status = .error(L("모델 다운로드가 끝나면 사용할 수 있어요"))
             return
         }
         do {
@@ -123,7 +123,7 @@ final class AppState: ObservableObject {
             // 조합 취소(cancelRecording) 시 종료음만 억제됨: 시작음이 이미 난 것은 수용된 트레이드오프
             // (opt-in 설정 + 취소는 mic 데이터도 폐기되므로 내용 유출 없음).
             SoundPlayer.shared.playStart()
-        } catch { status = .error("마이크 시작 실패") }
+        } catch { status = .error(L("마이크 시작 실패")) }
     }
 
     /// 홀드 중 다른 키가 눌려 조합 단축키로 판정된 경우 — 전사하지 않고 녹음을 폐기.
@@ -178,7 +178,7 @@ final class AppState: ObservableObject {
             guard let engine else {
                 await MainActor.run {
                     self?.engineLoad = nil  // 실패한 로드는 버려서 다음 시도가 새로 로드하게
-                    self?.status = .error("모델 없음: \(modelPath)")
+                    self?.status = .error(L("모델 없음: \(modelPath)"))
                 }
                 return
             }
@@ -241,7 +241,7 @@ final class AppState: ObservableObject {
                     }
                 }
             } catch {
-                await MainActor.run { self?.status = .error("전사 실패 — 다시 시도해 주세요") }
+                await MainActor.run { self?.status = .error(L("전사 실패 — 다시 시도해 주세요")) }
                 return
             }
         }
