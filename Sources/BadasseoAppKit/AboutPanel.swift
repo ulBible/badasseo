@@ -109,6 +109,9 @@ enum AboutPanel {
                           range: NSRange(location: 0, length: mark.length))
         text.append(mark)
         text.append(NSAttributedString(string: "\n", attributes: secondary))
+        // The tagline must stay on ONE line in every language — the layout
+        // above is tuned to the fixed credits height, so a wrapped second
+        // line pushes the links row out of view (the English copy did, 9/2026).
         text.append(NSAttributedString(
             string: L("키보드 대신 말로. 전 과정이 내 맥 안에서.") + "\n", attributes: body))
         let creditGap = NSMutableParagraphStyle()
@@ -120,7 +123,11 @@ enum AboutPanel {
         text.append(NSAttributedString(
             string: "Made by Chakchak Works · by ulBible\n", attributes: creditAttrs))
 
-        let separator = NSAttributedString(string: "  ·  ", attributes: secondary)
+        // Single spaces around the dot: with four links the row must stay under
+        // ~258pt (the compact credits width). Any wider and it wraps, which
+        // makes AppKit switch to a full-width scrolling credits box with
+        // separator lines — the look the Website link caused in 9/2026.
+        let separator = NSAttributedString(string: " · ", attributes: secondary)
         text.append(link("GitHub", "https://github.com/ulBible/badasseo"))
         text.append(separator)
         text.append(link("Website", "https://chakchak.works/apps/badasseo"))

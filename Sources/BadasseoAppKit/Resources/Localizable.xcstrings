@@ -1082,11 +1082,12 @@
       }
     },
     "키보드 대신 말로. 전 과정이 내 맥 안에서.": {
+      "comment": "About panel tagline. Must fit on ONE line (about 270pt at the small system font): the credits area has a fixed height, so a second line pushes the links row out of view.",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Speak instead of typing. Everything happens right on your Mac."
+            "value": "Speak instead of typing. Entirely on your Mac."
           }
         }
       }
