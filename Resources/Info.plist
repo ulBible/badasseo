@@ -5,6 +5,10 @@
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key><string>app.badasseo</string>
     <key>CFBundleName</key><string>받아써</string>
+    <!-- UI 문자열 소스 언어는 한국어(ko), 번역은 영어(en). 이 두 키가 없으면 메인 번들이
+         영어로 취급돼 한국어 맥에서도 리소스 번들(Localizable)이 en을 고른다. -->
+    <key>CFBundleDevelopmentRegion</key><string>ko</string>
+    <key>CFBundleLocalizations</key><array><string>ko</string><string>en</string></array>
     <key>NSHumanReadableCopyright</key><string>© 2026 Chakchak Works</string>
     <key>CFBundleExecutable</key><string>Badasseo</string>
     <key>CFBundlePackageType</key><string>APPL</string>
