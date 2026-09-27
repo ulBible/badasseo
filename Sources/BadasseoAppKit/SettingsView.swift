@@ -1,5 +1,4 @@
 import SwiftUI
-import KeyboardShortcuts
 import BadasseoCore
 
 struct SettingsView: View {
@@ -55,11 +54,9 @@ struct SettingsCard<Content: View>: View {
 
 /// 단축키·사운드·시작 설정.
 struct GeneralTab: View {
-    @AppStorage("hotkeyMode") private var hotkeyMode = "rightCommand"
     @AppStorage(SoundPlayer.startKey) private var soundStart = true
     @AppStorage(SoundPlayer.stopKey) private var soundStop = true
     @AppStorage(SoundPlayer.commandKey) private var soundCommand = true
-    @AppStorage(HoldKey.defaultsKey) private var holdKey = HoldKey.rightCommand.rawValue
 
     init() {
         // 개별 키 미존재 시 기존 통합 토글("soundFeedback")을 기본값으로 —
@@ -76,79 +73,47 @@ struct GeneralTab: View {
     @State private var revertingLaunchAtLogin = false
 
     var body: some View {
-        VStack(spacing: 14) {
-            SettingsCard(title: L("음성 입력 단축키")) {
-                VStack(alignment: .leading, spacing: 10) {
-                    // "(기본)" 라벨은 변형별 실제 기본과 일치해야 한다 — MAS는 ⌥Space(custom)가
-                    // 기본(온보딩 프리셀렉트·심사 노트와 동일 축), GitHub은 우측 ⌘.
-                    Picker("", selection: $hotkeyMode) {
-                        if BuildVariant.current == .appStore {
-                            Text(L("우측 ⌘ 누르고 말하기 (고급 — 손쉬운 사용 권한 필요)")).tag("rightCommand")
-                            Text(L("단축키 조합 (기본 ⌥Space)")).tag("custom")
-                        } else {
-                            Text(L("우측 ⌘ 누르고 말하기 (기본)")).tag("rightCommand")
-                            Text(L("사용자 지정 조합")).tag("custom")
-                        }
-                    }
-                    .pickerStyle(.radioGroup).labelsHidden()
-                    .onChange(of: hotkeyMode) { _, mode in
-                        // 등록만으로도 조합 키가 전역 소비되므로, custom일 때만 Carbon 핫키 활성
-                        if mode == "custom" { KeyboardShortcuts.enable(.pushToTalk) }
-                        else { KeyboardShortcuts.disable(.pushToTalk) }
-                    }
-                    if hotkeyMode == "rightCommand" {
-                        Picker(L("홀드 키"), selection: $holdKey) {
-                            ForEach(HoldKey.allCases, id: \.rawValue) { k in Text(L(String.LocalizationValue(k.displayName))).tag(k.rawValue) }
-                        }.pickerStyle(.menu).frame(maxWidth: 200)
-                        Text(L("외부 키보드에 우측 ⌘가 없다면 다른 키를 선택하세요."))
+        ScrollView {
+            VStack(spacing: 14) {
+                HotkeySettingsCard()
+                SettingsCard(title: L("사운드")) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle(L("인식 시작음"), isOn: $soundStart)
+                        Toggle(L("인식 종료음"), isOn: $soundStop)
+                        Toggle(L("음성 명령 실행음"), isOn: $soundCommand)
+                        Text(L("각 소리를 개별적으로 켜고 끌 수 있어요. 모두 끄면 완전 무음으로 동작해요."))
                             .font(.callout).foregroundStyle(.secondary)
                     }
-                    if hotkeyMode == "custom" {
-                        KeyboardShortcuts.Recorder(L("조합 키"), name: .pushToTalk)
-                    }
-                    Text(hotkeyMode == "rightCommand"
-                         ? L("\(L(String.LocalizationValue((HoldKey(rawValue: holdKey) ?? .rightCommand).displayName)))만 눌러 유지하는 동안 녹음돼요. 다른 키와 조합하면 녹음되지 않아요.")
-                         : L("지정한 조합을 누르고 있는 동안 녹음돼요."))
-                        .font(.callout).foregroundStyle(.secondary)
                 }
-            }
-            SettingsCard(title: L("사운드")) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Toggle(L("인식 시작음"), isOn: $soundStart)
-                    Toggle(L("인식 종료음"), isOn: $soundStop)
-                    Toggle(L("음성 명령 실행음"), isOn: $soundCommand)
-                    Text(L("각 소리를 개별적으로 켜고 끌 수 있어요. 모두 끄면 완전 무음으로 동작해요."))
-                        .font(.callout).foregroundStyle(.secondary)
-                }
-            }
-            SettingsCard(title: L("시작")) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Toggle(L("로그인 시 자동 실행"), isOn: $launchAtLogin)
-                        .onChange(of: launchAtLogin) { _, enabled in
-                            if revertingLaunchAtLogin { revertingLaunchAtLogin = false; return }
-                            do {
-                                try LaunchAtLogin.set(enabled: enabled)
-                                launchAtLoginError = nil
-                            } catch {
-                                launchAtLoginError = error.localizedDescription
-                                let actual = LaunchAtLogin.isEnabled
-                                if launchAtLogin != actual {
-                                    revertingLaunchAtLogin = true
-                                    launchAtLogin = actual
+                SettingsCard(title: L("시작")) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle(L("로그인 시 자동 실행"), isOn: $launchAtLogin)
+                            .onChange(of: launchAtLogin) { _, enabled in
+                                if revertingLaunchAtLogin { revertingLaunchAtLogin = false; return }
+                                do {
+                                    try LaunchAtLogin.set(enabled: enabled)
+                                    launchAtLoginError = nil
+                                } catch {
+                                    launchAtLoginError = error.localizedDescription
+                                    let actual = LaunchAtLogin.isEnabled
+                                    if launchAtLogin != actual {
+                                        revertingLaunchAtLogin = true
+                                        launchAtLogin = actual
+                                    }
                                 }
                             }
+                        if let launchAtLoginError {
+                            Text(launchAtLoginError)
+                                .font(.callout).foregroundStyle(.red)
                         }
-                    if let launchAtLoginError {
-                        Text(launchAtLoginError)
-                            .font(.callout).foregroundStyle(.red)
+                        Text(L("맥을 켜면 받아써가 메뉴바에 자동으로 상주해요."))
+                            .font(.callout).foregroundStyle(.secondary)
                     }
-                    Text(L("맥을 켜면 받아써가 메뉴바에 자동으로 상주해요."))
-                        .font(.callout).foregroundStyle(.secondary)
                 }
             }
-            Spacer()
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
         }
-        .padding(.horizontal, 20)
     }
 }
 

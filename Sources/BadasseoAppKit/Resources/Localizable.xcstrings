@@ -61,6 +61,16 @@
         }
       }
     },
+    "fn을 누를 때 이모지 창이 뜨거나 입력 소스가 바뀌면, 시스템 설정 › 키보드에서 🌐 키를 눌렀을 때 아무 동작도 하지 않도록 바꿔 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If pressing fn opens the emoji picker or switches input sources, set the 🌐 key to do nothing in System Settings › Keyboard."
+          }
+        }
+      }
+    },
     "macOS 권한 창이 떠요": {
       "localizations": {
         "en": {
@@ -201,6 +211,16 @@
         }
       }
     },
+    "누르고 있는 동안 녹음할 키": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold this key to record"
+          }
+        }
+      }
+    },
     "다시 말해주세요": {
       "localizations": {
         "en": {
@@ -257,16 +277,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Used only for shortcut detection and automatic insertion"
-          }
-        }
-      }
-    },
-    "단축키 조합 (기본 ⌥Space)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom shortcut (default ⌥Space)"
           }
         }
       }
@@ -541,16 +551,6 @@
         }
       }
     },
-    "사용자 지정 조합": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom shortcut"
-          }
-        }
-      }
-    },
     "사운드": {
       "localizations": {
         "en": {
@@ -607,6 +607,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Accessibility permission needed — copies to clipboard only"
+          }
+        }
+      }
+    },
+    "손쉬운 사용 권한이 꺼져 있어 다른 앱에서는 이 키가 동작하지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility permission is off, so this key won’t work in other apps."
           }
         }
       }
@@ -761,16 +771,6 @@
         }
       }
     },
-    "외부 키보드에 우측 ⌘가 없다면 다른 키를 선택하세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If your external keyboard has no right ⌘, choose another key."
-          }
-        }
-      }
-    },
     "우측 ⌃": {
       "localizations": {
         "en": {
@@ -801,32 +801,22 @@
         }
       }
     },
+    "우측 ⌘ (기본)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right ⌘ (default)"
+          }
+        }
+      }
+    },
     "우측 ⌘ 누르고 말하기": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Hold right ⌘ and speak"
-          }
-        }
-      }
-    },
-    "우측 ⌘ 누르고 말하기 (고급 — 손쉬운 사용 권한 필요)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hold right ⌘ and speak (advanced — requires Accessibility permission)"
-          }
-        }
-      }
-    },
-    "우측 ⌘ 누르고 말하기 (기본)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hold right ⌘ and speak (default)"
           }
         }
       }
@@ -967,6 +957,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shortcut"
+          }
+        }
+      }
+    },
+    "조합 키 (기본 ⌥Space)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom shortcut (default ⌥Space)"
+          }
+        }
+      }
+    },
+    "조합 키 직접 지정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom shortcut"
           }
         }
       }
@@ -1117,16 +1127,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Allowed"
-          }
-        }
-      }
-    },
-    "홀드 키": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hold Key"
           }
         }
       }
