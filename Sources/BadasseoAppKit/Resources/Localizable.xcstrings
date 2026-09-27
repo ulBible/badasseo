@@ -781,6 +781,16 @@
         }
       }
     },
+    "우측 ⌃ (외장 키보드)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right ⌃ (external keyboard)"
+          }
+        }
+      }
+    },
     "우측 ⌃를": {
       "localizations": {
         "en": {

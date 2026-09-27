@@ -55,9 +55,11 @@ struct HotkeySettingsCard: View {
     }
 
     /// "(기본)"은 변형별 실제 기본값에만 — GitHub은 우측 ⌘, 앱스토어는 조합 키(⌥Space).
+    /// 우측 ⌃는 맥북 내장 키보드에 없는 키라 외장 키보드용임을 라벨에 밝힌다.
     private func label(for choice: HotkeyChoice) -> String {
         switch choice {
         case .hold(.rightCommand) where !isAppStore: L("우측 ⌘ (기본)")
+        case .hold(.rightControl): L("우측 ⌃ (외장 키보드)")
         case .hold(let key): L(String.LocalizationValue(key.displayName))
         case .combo: isAppStore ? L("조합 키 (기본 ⌥Space)") : L("조합 키 직접 지정")
         }
