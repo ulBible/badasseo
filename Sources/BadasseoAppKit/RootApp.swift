@@ -80,6 +80,7 @@ public struct BadasseoRootApp: App {
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var state = AppState()
+    @AppStorage(HotkeyChoice.modeKey) private var hotkeyMode = HotkeyChoice.hold(.rightCommand).mode
     @Environment(\.openWindow) private var openWindow
 
     public var body: some Scene {
@@ -94,8 +95,7 @@ public struct BadasseoRootApp: App {
                 Text(L("마지막: \(String(state.lastResult.prefix(30)))"))
             }
             Divider()
-            Text(TextInserter.hasAccessibility
-                 ? L("붙여넣기: 활성") : L("손쉬운 사용 권한 필요 — 클립보드 복사만 동작"))
+            Text(accessibilityNoticeText)
             Button(L("설정…")) {
                 // 메뉴바 전용(LSUIElement) 앱은 비활성 상태라 설정 창이 뒤에 열림 —
                 // 먼저 앱을 활성화해 창을 포그라운드로.
@@ -164,6 +164,16 @@ public struct BadasseoRootApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+    }
+
+    /// 메뉴의 권한 안내 — 홀드 키는 권한이 없으면 다른 앱에서 감지 자체가 안 돼서,
+    /// 붙여넣기만 안 되는 조합 키와 안내가 달라야 한다.
+    private var accessibilityNoticeText: String {
+        switch AccessibilityNotice(trusted: state.axTrusted, choice: HotkeyChoice(mode: hotkeyMode, holdKey: nil)) {
+        case .pasteActive: L("붙여넣기: 활성")
+        case .hotkeyBlocked: L("손쉬운 사용 권한 필요 — 다른 앱에서는 단축키가 동작하지 않아요")
+        case .clipboardOnly: L("손쉬운 사용 권한 필요 — 클립보드 복사만 동작")
+        }
     }
 
     private var iconName: String {

@@ -72,6 +72,16 @@ public final class ModifierHoldMonitor {
         }
     }
 
+    /// 손쉬운 사용 권한이 (다시) 켜진 시점에 전역 모니터를 새로 붙인다 — 권한이 꺼져 있던
+    /// 동안 붙어 있던 모니터가 재부여 후에도 이벤트를 받는다는 보장이 없어서다.
+    /// 로컬 모니터와 진행 중인 홀드 상태는 건드리지 않는다.
+    public func reinstallGlobalMonitors() {
+        [globalFlagsMonitor, globalKeyDownMonitor].compactMap { $0 }.forEach(NSEvent.removeMonitor)
+        globalFlagsMonitor = nil
+        globalKeyDownMonitor = nil
+        installGlobalMonitorsIfNeeded()
+    }
+
     /// NSEvent 모니터 콜백은 AppKit 문서상 항상 메인 스레드에서 호출되지만, 그 가정이
     /// 틀렸을 때 `MainActor.assumeIsolated`는 즉시 크래시한다. 실제로 메인 스레드일 때는
     /// (거의 항상) 동기 실행해 기존 타이밍을 유지하고, 아닐 때만 메인 큐로 홉해

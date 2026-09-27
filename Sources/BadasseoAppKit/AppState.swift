@@ -1,4 +1,6 @@
 import SwiftUI
+import ApplicationServices
+import os
 import KeyboardShortcuts
 import BadasseoCore
 import BadasseoEngine
@@ -49,6 +51,12 @@ final class AppState: ObservableObject {
     private let modifierHoldMonitor = ModifierHoldMonitor()
     private var noSpeechGeneration = 0
 
+    /// 손쉬운 사용 권한 상태 — 메뉴 안내 문구가 권한 변화에 맞춰 다시 그려지도록 게시한다.
+    @Published private(set) var axTrusted = AXIsProcessTrusted()
+    private var accessibilityListObserver: DistributedObserver?
+    private var accessibilityRecheck: Task<Void, Never>?
+    private static let log = Logger(subsystem: "app.badasseo", category: "accessibility")
+
     /// 현재 녹음 세션을 시작시킨 경로("rightCommand"/"custom"). begin 시점에만 모드를
     /// 확인해 세팅하고, end/cancel은 모드 재확인 대신 이 값으로 자기 세션인지만 본다 —
     /// 그래야 녹음 중 설정에서 모드를 바꿔도 시작한 경로가 끝까지 책임지고 정리한다
@@ -92,18 +100,54 @@ final class AppState: ObservableObject {
         // 이미 손쉬운 사용 권한이 있으면(과거 부여했거나 tccutil 리셋 안 된 경우) 즉시
         // 전역 모니터까지 가동 — 권한이 없으면 여기서는 아무 일도 안 일어난다(옵트인).
         modifierHoldMonitor.installGlobalMonitorsIfNeeded()
-        // 온보딩에서 방금 권한을 부여한 경로(HotkeyStep의 AX 폴러)를 연결.
+        // 온보딩·설정의 허용 버튼 폴러가 권한 획득을 감지한 경로.
         NotificationCenter.default.addObserver(forName: .badasseoAXGranted, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.modifierHoldMonitor.installGlobalMonitorsIfNeeded() }
+            Task { @MainActor in self?.refreshAccessibility() }
         }
-        // 설정 앱에서 수동으로 권한을 켜고 돌아온 경우(온보딩 폴러를 거치지 않는 경로)도 커버.
+        // 받아써 창으로 돌아온 경우.
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.modifierHoldMonitor.installGlobalMonitorsIfNeeded() }
+            Task { @MainActor in self?.refreshAccessibility() }
+        }
+        // 시스템 설정에서 직접 켜고 받아써 창은 열지 않은 경우 — 메뉴바 앱은 거의 항상
+        // 비활성이라 위 두 경로가 오지 않는다. macOS는 손쉬운 사용 목록이 바뀔 때 이
+        // 분산 알림을 보낸다(권한 없이 구독 가능).
+        accessibilityListObserver = DistributedObserver(name: "com.apple.accessibility.api") { [weak self] in
+            Task { @MainActor in self?.recheckAccessibilitySoon() }
         }
         // custom 모드가 아니면 Carbon 핫키 등록을 비활성 — 등록만으로도 ⌥Space가
         // 시스템 전역에서 소비되어(Alfred 등과 충돌) "무간섭" 원칙을 깬다.
         // 모드 전환 시 GeneralTab이 enable/disable을 토글한다.
         if Self.hotkeyMode != "custom" { KeyboardShortcuts.disable(.pushToTalk) }
+    }
+
+    /// 손쉬운 사용 권한을 다시 읽어 전역 모니터와 메뉴 안내에 반영한다. 꺼짐→켜짐이면 전역
+    /// 모니터를 새로 붙이고(권한 없던 동안의 모니터는 이벤트를 못 받을 수 있음), 켜짐이
+    /// 유지되면 빠진 경우에만 설치한다.
+    private func refreshAccessibility() {
+        let trusted = AXIsProcessTrusted()
+        if trusted != axTrusted {
+            Self.log.notice("accessibility trusted changed: \(trusted, privacy: .public)")
+            axTrusted = trusted
+            if trusted { modifierHoldMonitor.reinstallGlobalMonitors() }
+        } else if trusted {
+            modifierHoldMonitor.installGlobalMonitorsIfNeeded()
+        }
+    }
+
+    /// 분산 알림 시점엔 AXIsProcessTrusted()가 아직 옛 값일 수 있다 — 상태가 바뀔 때까지
+    /// 0.5초 간격으로 최대 5초 다시 확인한다(다른 앱의 권한 변경이면 5초 뒤 조용히 끝).
+    private func recheckAccessibilitySoon() {
+        Self.log.notice("accessibility list changed — rechecking")
+        accessibilityRecheck?.cancel()
+        let before = axTrusted
+        accessibilityRecheck = Task { @MainActor [weak self] in
+            for _ in 0..<10 {
+                guard let self, !Task.isCancelled else { return }
+                self.refreshAccessibility()
+                if self.axTrusted != before { return }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
+        }
     }
 
     private func beginRecording() {
@@ -246,6 +290,24 @@ final class AppState: ObservableObject {
             }
         }
     }
+}
+
+/// 분산 알림을 "즉시 전달"로 구독하는 얇은 래퍼 — 블록 기반 API에는 suspensionBehavior
+/// 인자가 없는데, 비활성 앱에는 전달이 보류될 수 있어 메뉴바 앱에선 알림이 제때 오지 않는다.
+private final class DistributedObserver: NSObject {
+    private let handler: @Sendable () -> Void
+
+    init(name: String, handler: @escaping @Sendable () -> Void) {
+        self.handler = handler
+        super.init()
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(fire), name: Notification.Name(name), object: nil,
+            suspensionBehavior: .deliverImmediately)
+    }
+
+    deinit { DistributedNotificationCenter.default().removeObserver(self) }
+
+    @objc private func fire() { handler() }
 }
 
 extension Notification.Name {
