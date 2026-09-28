@@ -45,13 +45,28 @@ if ! xcodebuild -version >/dev/null 2>&1; then
 fi
 
 echo "==> Building (${XCODE_CONFIG} via xcodebuild)"
+# Xcode 27's Swift driver links with `clang --sysroot <SDK>`, and clang only
+# reads the SDK version from -isysroot — without this the binary records the
+# deployment target as its SDK version (LC_BUILD_VERSION "sdk 14.0"), which
+# makes AppKit run the app in macOS 14 compatibility mode. Passing -isysroot to
+# the link step restores the real SDK version (27.0 with Xcode 27).
 xcodebuild -quiet \
   -scheme "${APP_NAME}" \
   -configuration "${XCODE_CONFIG}" \
   -destination "platform=macOS" \
   -derivedDataPath "${DERIVED_DATA}" \
   CODE_SIGNING_ALLOWED=NO \
+  'OTHER_LDFLAGS=$(inherited) -Xclang-linker -isysroot -Xclang-linker $(SDKROOT)' \
   build
+
+# Guard against the SDK-version regression above coming back with a toolchain
+# update: the linked binary must record the SDK it was built against.
+LINKED_SDK=$(vtool -show-build "${BUILD_DIR}/${APP_NAME}" | awk '$1 == "sdk" { print $2; exit }' | cut -d. -f1-2)
+ACTIVE_SDK=$(xcrun --show-sdk-version | cut -d. -f1-2)
+if [[ "${LINKED_SDK}" != "${ACTIVE_SDK}" ]]; then
+  echo "error: built against the macOS ${ACTIVE_SDK} SDK but the binary records sdk ${LINKED_SDK} (LC_BUILD_VERSION)." >&2
+  exit 1
+fi
 
 echo "==> Assembling ${APP_BUNDLE}"
 rm -rf "${APP_BUNDLE}"
