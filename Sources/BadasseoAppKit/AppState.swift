@@ -100,7 +100,7 @@ final class AppState: ObservableObject {
         // 이미 손쉬운 사용 권한이 있으면(과거 부여했거나 tccutil 리셋 안 된 경우) 즉시
         // 전역 모니터까지 가동 — 권한이 없으면 여기서는 아무 일도 안 일어난다(옵트인).
         modifierHoldMonitor.installGlobalMonitorsIfNeeded()
-        // 온보딩·설정의 허용 버튼 폴러가 권한 획득을 감지한 경로.
+        // 온보딩 허용 버튼 폴러(HotkeyStep)가 권한 획득을 감지한 경로.
         NotificationCenter.default.addObserver(forName: .badasseoAXGranted, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.refreshAccessibility() }
         }
@@ -120,33 +120,35 @@ final class AppState: ObservableObject {
         if Self.hotkeyMode != "custom" { KeyboardShortcuts.disable(.pushToTalk) }
     }
 
-    /// 손쉬운 사용 권한을 다시 읽어 전역 모니터와 메뉴 안내에 반영한다. 꺼짐→켜짐이면 전역
-    /// 모니터를 새로 붙이고(권한 없던 동안의 모니터는 이벤트를 못 받을 수 있음), 켜짐이
-    /// 유지되면 빠진 경우에만 설치한다.
+    /// 손쉬운 사용 권한을 다시 읽어 전역 모니터와 메뉴·설정 안내에 반영한다 — 켜져 있으면 전역
+    /// 모니터를 (없을 때) 붙이고, 꺼졌으면 뗀다. 떼는 이유: 입력 모니터링 권한이 따로 있으면
+    /// 손쉬운 사용 없이도 전역 키 입력이 들어오는데(실측), 그러면 "다른 앱에서는 동작하지
+    /// 않아요" 안내와 실제 동작이 어긋나고 붙여넣기도 안 돼 결과가 사라진 것처럼 보인다.
     private func refreshAccessibility() {
         let trusted = AXIsProcessTrusted()
         if trusted != axTrusted {
             Self.log.notice("accessibility trusted changed: \(trusted, privacy: .public)")
             axTrusted = trusted
-            if trusted { modifierHoldMonitor.reinstallGlobalMonitors() }
-        } else if trusted {
+        }
+        if trusted {
             modifierHoldMonitor.installGlobalMonitorsIfNeeded()
+        } else {
+            modifierHoldMonitor.removeGlobalMonitors()
         }
     }
 
-    /// 분산 알림 시점엔 AXIsProcessTrusted()가 아직 옛 값일 수 있다 — 상태가 바뀔 때까지
-    /// 0.5초 간격으로 최대 5초 다시 확인한다(다른 앱의 권한 변경이면 5초 뒤 조용히 끝).
+    /// 알림 직후가 아니라 1초 뒤에 한 번 읽는다. AXIsProcessTrusted()는 결과를 프로세스 안에
+    /// 캐시하고, 이 분산 알림이 오면 캐시를 버린 뒤 다음 호출 때 한 번만 tccd에 다시 묻는다
+    /// (실측: 14초간 14번 호출에 tccd 조회 2번). 그런데 시스템 설정은 권한을 저장하기 5~17ms
+    /// 전에 알림을 보내서, 곧바로 읽으면 옛 값이 캐시에 굳어 다음 변경 때까지 정반대 상태를
+    /// 믿게 된다(실측: 켜면 꺼짐, 끄면 켜짐으로 한 박자씩 밀림). 연속 변경은 마지막 것만 반영.
     private func recheckAccessibilitySoon() {
-        Self.log.notice("accessibility list changed — rechecking")
+        Self.log.notice("accessibility list changed — rechecking in 1s")
         accessibilityRecheck?.cancel()
-        let before = axTrusted
         accessibilityRecheck = Task { @MainActor [weak self] in
-            for _ in 0..<10 {
-                guard let self, !Task.isCancelled else { return }
-                self.refreshAccessibility()
-                if self.axTrusted != before { return }
-                try? await Task.sleep(for: .milliseconds(500))
-            }
+            try? await Task.sleep(for: .seconds(1))
+            guard let self, !Task.isCancelled else { return }
+            self.refreshAccessibility()
         }
     }
 

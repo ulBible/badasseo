@@ -72,14 +72,19 @@ public final class ModifierHoldMonitor {
         }
     }
 
-    /// 손쉬운 사용 권한이 (다시) 켜진 시점에 전역 모니터를 새로 붙인다 — 권한이 꺼져 있던
-    /// 동안 붙어 있던 모니터가 재부여 후에도 이벤트를 받는다는 보장이 없어서다.
-    /// 로컬 모니터와 진행 중인 홀드 상태는 건드리지 않는다.
-    public func reinstallGlobalMonitors() {
+    /// 손쉬운 사용 권한이 꺼진 시점에 전역 모니터를 뗀다 — 입력 모니터링 권한이 따로 있으면
+    /// 손쉬운 사용 없이도 전역 키 입력이 계속 들어와, 권한 상태 안내와 실제 동작이 어긋난다.
+    /// 로컬 모니터는 그대로 둔다. 홀드 중이었다면 떼는 순간 키를 놓는 이벤트를 못 받아
+    /// 녹음이 끝나지 않으므로 취소로 정리한다.
+    public func removeGlobalMonitors() {
         [globalFlagsMonitor, globalKeyDownMonitor].compactMap { $0 }.forEach(NSEvent.removeMonitor)
         globalFlagsMonitor = nil
         globalKeyDownMonitor = nil
-        installGlobalMonitorsIfNeeded()
+        if holding {
+            holding = false
+            activeKey = nil
+            onCancel?()
+        }
     }
 
     /// NSEvent 모니터 콜백은 AppKit 문서상 항상 메인 스레드에서 호출되지만, 그 가정이

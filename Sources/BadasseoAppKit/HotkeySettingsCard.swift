@@ -9,11 +9,12 @@ import BadasseoCore
 ///
 /// 저장은 기존 `hotkeyMode`·`holdKey` 두 키 그대로 — `HotkeyChoice`가 변환한다.
 /// 두 값을 각각 @AppStorage로 구독해야 어느 쪽이 바뀌어도 다시 그려진다.
+/// 권한 상태는 직접 폴링하지 않고 AppState가 게시한 값을 쓴다 — AXIsProcessTrusted()는
+/// 캐시되는데, 권한 변경 알림 직후 몇 ms 안에 읽으면 옛 값이 굳는다(AppState 주석 참고).
 struct HotkeySettingsCard: View {
+    @EnvironmentObject private var state: AppState
     @AppStorage(HotkeyChoice.modeKey) private var hotkeyMode = HotkeyChoice.hold(.rightCommand).mode
     @AppStorage(HoldKey.defaultsKey) private var holdKey = HoldKey.rightCommand.rawValue
-    @State private var axTrusted = AXIsProcessTrusted()
-    @State private var poller: Timer?
 
     private var isAppStore: Bool { BuildVariant.current == .appStore }
     private var current: HotkeyChoice { HotkeyChoice(mode: hotkeyMode, holdKey: holdKey) }
@@ -46,12 +47,6 @@ struct HotkeySettingsCard: View {
                 status
             }
         }
-        .onAppear { axTrusted = AXIsProcessTrusted() }
-        // 시스템 설정에서 직접 켜고 돌아온 경로(허용 버튼 폴러를 거치지 않음)도 반영
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            axTrusted = AXIsProcessTrusted()
-        }
-        .onDisappear { poller?.invalidate(); poller = nil }
     }
 
     /// "(기본)"은 변형별 실제 기본값에만 — GitHub은 우측 ⌘, 앱스토어는 조합 키(⌥Space).
@@ -69,7 +64,7 @@ struct HotkeySettingsCard: View {
     private var status: some View {
         switch current {
         case .hold(let key):
-            if axTrusted {
+            if state.axTrusted {
                 Text(L("\(L(String.LocalizationValue(key.displayName)))만 눌러 유지하는 동안 녹음돼요. 다른 키와 조합하면 녹음되지 않아요."))
                     .font(.callout).foregroundStyle(.secondary)
             } else {
@@ -87,26 +82,16 @@ struct HotkeySettingsCard: View {
         case .combo:
             Text(L("지정한 조합을 누르고 있는 동안 녹음돼요."))
                 .font(.callout).foregroundStyle(.secondary)
-            if !axTrusted {
+            if !state.axTrusted {
                 Text(L("권한 없이 사용. 전사 결과가 클립보드에 담겨요."))
                     .font(.callout).foregroundStyle(.secondary)
             }
         }
     }
 
-    /// 온보딩 HotkeyStep.promptAX()와 같은 경로 — 시스템 프롬프트 후 1초 폴링, 켜지는 즉시
-    /// 안내를 바꾸고 AppState가 전역 모니터를 설치하도록 브로드캐스트한다.
+    /// 시스템 프롬프트(설정 열기)만 띄운다. 사용자가 켜면 AppState가 권한 변경 알림으로 감지해
+    /// 전역 모니터를 붙이고 axTrusted를 갱신하므로, 이 카드의 안내도 그때 바뀐다.
     private func requestAccessibility() {
         _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-        poller?.invalidate()
-        poller = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            Task { @MainActor in
-                guard AXIsProcessTrusted() else { return }
-                axTrusted = true
-                poller?.invalidate()
-                poller = nil
-                NotificationCenter.default.post(name: .badasseoAXGranted, object: nil)
-            }
-        }
     }
 }

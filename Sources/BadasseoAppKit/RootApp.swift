@@ -159,7 +159,8 @@ public struct BadasseoRootApp: App {
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
         Window(L("설정"), id: "settings") {
-            SettingsView()
+            // 단축키 카드가 권한 상태(axTrusted)를 AppState에서 읽는다
+            SettingsView().environmentObject(state)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
