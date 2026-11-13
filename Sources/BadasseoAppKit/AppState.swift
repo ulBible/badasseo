@@ -192,6 +192,7 @@ final class AppState: ObservableObject {
     /// 1.6GB 로드를 헛돌리지 않으려고 "받아쓰기가 맞다"는 신호를 기다린다: 0.3초 넘게 누르고
     /// 있고(스친 입력 제외), 조합 단축키가 아니며, 마이크에 말소리가 들어왔을 때. 말소리 조건이
     /// 없으면 홀드 키를 수식키로 길게 누르는 사용(fn+방향키, 우측 ⌥+클릭)마다 로드가 돈다.
+    /// 대가는 말을 시작하기 전까지의 시간을 로드에 쓰지 못하는 것 — 0.1초마다 확인해 줄인다.
     private func schedulePrepare() {
         prepareTask?.cancel()
         prepareTask = Task { @MainActor [weak self] in
@@ -208,7 +209,7 @@ final class AppState: ObservableObject {
                     self.startIdleChecks()
                     return
                 }
-                try? await Task.sleep(for: .milliseconds(150))
+                try? await Task.sleep(for: .milliseconds(100))
             }
         }
     }
