@@ -11,7 +11,7 @@ extension KeyboardShortcuts.Name {
 
 @MainActor
 final class AppState: ObservableObject {
-    enum Status { case idle, recording, processing, noSpeech, error(String) }
+    enum Status { case idle, recording, processing, noSpeech, copied, error(String) }
     @Published var status: Status = .idle {
         didSet {
             // 변환 중 메뉴바 타이핑 애니메이션 프레임 구동. TimelineView를 MenuBarExtra
@@ -52,10 +52,13 @@ final class AppState: ObservableObject {
     /// 키를 누른 뒤 엔진 준비를 시작하기까지의 대기 — 키를 떼거나 취소하면 무효가 된다.
     private var prepareTask: Task<Void, Never>?
     private var idleCheckTimer: Timer?
+    /// 엔진에 일을 시킬 때마다 올린다 — 그 전에 보낸 해제 요청의 결과가 뒤늦게 도착했을 때
+    /// "그사이 엔진을 다시 썼다"를 알아채는 데 쓴다 (unloadEngineIfIdle).
+    private var engineUseGeneration = 0
     private var recordingStartedAt: Date?
     private var lastDictationEndedAt: Date?
     private let modifierHoldMonitor = ModifierHoldMonitor()
-    private var noSpeechGeneration = 0
+    private var transientStatusGeneration = 0
 
     /// 손쉬운 사용 권한 상태 — 메뉴 안내 문구가 권한 변화에 맞춰 다시 그려지도록 게시한다.
     @Published private(set) var axTrusted = AXIsProcessTrusted()
@@ -163,7 +166,7 @@ final class AppState: ObservableObject {
 
     private func beginRecording() {
         // .error에서도 시작 허용 — 레코딩 재시도가 곧 에러 해제. (에러 문구는 다음 시도까지 메뉴에 유지)
-        switch status { case .idle, .error, .noSpeech: break; default: return }
+        switch status { case .idle, .error, .noSpeech, .copied: break; default: return }
         // 모델이 준비되기 전에는 녹음 자체를 시작하지 않는다 (마이크·효과음 비활성) —
         // 다운로드 중 단축키를 눌러도 마이크가 켜지거나 시작음이 나지 않아야 한다.
         guard let size = try? FileManager.default.attributesOfItem(atPath: modelPath)[.size] as? Int64,
@@ -185,21 +188,33 @@ final class AppState: ObservableObject {
 
     /// 말하는 동안 엔진을 준비해 둔다 — 엔진이 내려가 있으면(첫 받아쓰기, 또는 메모리 압박으로
     /// 해제된 뒤) 키를 뗀 다음이 아니라 지금 로드를 시작해 그 시간을 발화 시간에 묻는다.
-    /// 0.3초 기다렸다 시작하는 이유: 스친 입력(0.5초 미만은 어차피 버린다)이나 우측 ⌘ 조합
-    /// 단축키에 1.6GB 로드를 헛돌리지 않기 위해서다.
+    ///
+    /// 1.6GB 로드를 헛돌리지 않으려고 "받아쓰기가 맞다"는 신호를 기다린다: 0.3초 넘게 누르고
+    /// 있고(스친 입력 제외), 조합 단축키가 아니며, 마이크에 말소리가 들어왔을 때. 말소리 조건이
+    /// 없으면 홀드 키를 수식키로 길게 누르는 사용(fn+방향키, 우측 ⌥+클릭)마다 로드가 돈다.
     private func schedulePrepare() {
         prepareTask?.cancel()
         prepareTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(300))
-            guard let self, !Task.isCancelled, case .recording = self.status else { return }
-            if self.activeHotkeySource == "rightCommand", self.modifierHoldMonitor.isComboInProgress { return }
-            self.engineHost.prepare()
-            self.startIdleChecks()
+            while !Task.isCancelled {
+                guard let self, case .recording = self.status else { return }
+                if self.activeHotkeySource == "rightCommand", self.modifierHoldMonitor.isComboInProgress { return }
+                if self.capture.hasSpeechSoFar {
+                    self.engineUseGeneration += 1
+                    // 오래 쉰 엔진은 스왑으로 나갔을 수 있으니 새로 읽는다 — 유휴 확인 타이머가
+                    // 아직 돌지 않은 틈(최대 20초)에 키를 눌러도 같은 기준이 적용된다.
+                    self.engineHost.prepare(dropIfIdleFor: EngineIdlePolicy.minIdleSeconds(
+                        pressureLevel: MemoryPressure.currentLevel()))
+                    self.startIdleChecks()
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(150))
+            }
         }
     }
 
-    /// 엔진이 올라와 있는 동안 주기적으로, 메모리 압박 속에 쉬고 있으면 내려놓는다
-    /// (이유와 기준은 `EngineIdlePolicy`). 내려간 뒤에는 타이머도 멈춘다.
+    /// 엔진이 올라와 있는 동안 주기적으로 확인해, 충분히 쉬었으면 내려놓는다 — 메모리 압박
+    /// 중이면 30초, 아니면 10분(이유와 기준은 `EngineIdlePolicy`). 내려간 뒤에는 타이머도 멈춘다.
     private func startIdleChecks() {
         guard idleCheckTimer == nil else { return }
         let timer = Timer.scheduledTimer(withTimeInterval: EngineIdlePolicy.checkInterval,
@@ -217,16 +232,18 @@ final class AppState: ObservableObject {
 
     private func unloadEngineIfIdle() async {
         switch status { case .recording, .processing: return; default: break }
-        guard EngineIdlePolicy.isUnderPressure(level: MemoryPressure.currentLevel()) else { return }
-        switch await engineHost.unloadIfIdle(minIdle: EngineIdlePolicy.minIdleSeconds) {
-        case .unloaded:
-            Self.latencyLog.notice("engine unloaded: idle under memory pressure")
-            stopIdleChecks()
-        case .notLoaded:
-            stopIdleChecks()
-        case .stillInUse:
-            break
+        let pressureLevel = MemoryPressure.currentLevel()
+        let generation = engineUseGeneration
+        let result = await engineHost.unloadIfIdle(
+            minIdle: EngineIdlePolicy.minIdleSeconds(pressureLevel: pressureLevel))
+        if result == .unloaded {
+            let idle = lastDictationEndedAt.map { Int(Date().timeIntervalSince($0)) } ?? -1
+            Self.latencyLog.notice("engine unloaded idle=\(idle)s pressure=\(pressureLevel)")
         }
+        // 결과를 기다리는 사이 새 받아쓰기가 엔진을 다시 올렸으면 타이머를 멈추면 안 된다 —
+        // 멈추면 그 엔진은 다음 받아쓰기까지 확인 없이 올라가 있게 된다.
+        guard generation == engineUseGeneration else { return }
+        if result != .stillInUse { stopIdleChecks() }
     }
 
     /// 홀드 중 다른 키가 눌려 조합 단축키로 판정된 경우 — 전사하지 않고 녹음을 폐기.
@@ -239,12 +256,26 @@ final class AppState: ObservableObject {
     }
 
     private func showNoSpeech() {
-        noSpeechGeneration += 1
-        let gen = noSpeechGeneration
+        transientStatusGeneration += 1
+        let gen = transientStatusGeneration
         status = .noSpeech
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.5))
-            if case .noSpeech = self.status, gen == self.noSpeechGeneration { self.status = .idle }
+            if case .noSpeech = self.status, gen == self.transientStatusGeneration { self.status = .idle }
+        }
+    }
+
+    /// 자동 입력을 건너뛰고 클립보드에만 담았음을 메뉴바 아이콘과 소리로 잠깐 알린다.
+    /// 알림(Notifier)만으로는 부족하다 — 조용한 전달(provisional) 상태면 배너가 뜨지 않아
+    /// 받아쓴 결과가 그냥 사라진 것처럼 보인다.
+    private func showCopied() {
+        transientStatusGeneration += 1
+        let gen = transientStatusGeneration
+        status = .copied
+        SoundPlayer.shared.playAttention()
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            if case .copied = self.status, gen == self.transientStatusGeneration { self.status = .idle }
         }
     }
 
@@ -266,7 +297,6 @@ final class AppState: ObservableObject {
         // 엔진 작업은 전부 engineHost의 직렬 큐에서 한다 — 메인 스레드를 막지 않고, 말하는
         // 동안 시작해 둔 로드(schedulePrepare)가 있으면 그 뒤에 줄을 서서 같은 엔진을 쓴다.
         let host = engineHost
-        let modelPath = self.modelPath
         let keyUp = Date()
         let heldSeconds = recordingStartedAt.map { keyUp.timeIntervalSince($0) } ?? 0
         let idleSeconds = lastDictationEndedAt.map { keyUp.timeIntervalSince($0) }
@@ -274,6 +304,8 @@ final class AppState: ObservableObject {
         let pressureLevel = MemoryPressure.currentLevel()
         // 전사가 끝났을 때도 이 앱이 앞에 있어야 자동 입력한다 (LateResultPolicy).
         let frontmostAtKeyUp = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let audioSeconds = Double(samples.count) / 16000
+        engineUseGeneration += 1
         startIdleChecks()
         Task.detached(priority: .userInitiated) { [weak self] in
             do {
@@ -299,13 +331,16 @@ final class AppState: ObservableObject {
                     let onboardingActive = NSApp.windows.contains {
                         $0.identifier?.rawValue == "onboarding" && $0.isKeyWindow
                     }
-                    // 전사가 오래 걸린 사이 다른 앱으로 넘어갔으면 그 앱에 붙여넣거나 명령 키를
-                    // 보내지 않는다 — 클립보드에만 담고 알린다.
-                    let sameAppInFront = {
+                    // 전사가 끝났을 때 키를 뗀 시점의 앱이 여전히 앞에 있어야 자동 입력한다. 판정은
+                    // 자동 입력이 가능한 경우에만 의미가 있다 — 손쉬운 사용 권한이 없으면 어차피
+                    // 클립보드 복사뿐이라, 앱을 바꿨다고 안내하면 틀린 말이 된다.
+                    let decide = {
                         LateResultPolicy.decide(
                             frontmostAtKeyUp: frontmostAtKeyUp,
-                            frontmostNow: NSWorkspace.shared.frontmostApplication?.processIdentifier) == .insert
+                            frontmostNow: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                            elapsedSeconds: Date().timeIntervalSince(keyUp), audioSeconds: audioSeconds)
                     }
+                    let decision = decide()
                     let outcome: String
                     if command == .cancel {
                         // 폐기 — 삽입·히스토리·브로드캐스트 없음. 유일한 피드백은
@@ -315,23 +350,32 @@ final class AppState: ObservableObject {
                         outcome = "discarded"
                     } else if finalText.isEmpty, let command {
                         // 명령 단독 발화("엔터") — 붙여넣기 없이 키만
-                        if !onboardingActive, sameAppInFront() {
+                        if onboardingActive {
+                            self.status = .idle
+                            outcome = "onboarding"
+                        } else if decision == .insert(sendCommand: true) {
                             TextInserter.press(command)
                             SoundPlayer.shared.playCommand()
+                            self.status = .idle
                             outcome = "command"
                         } else {
+                            // 앱이 바뀌었거나 너무 늦었다 — 키를 보내지 않는다. 소리로만 알린다.
+                            SoundPlayer.shared.playAttention()
+                            self.status = .idle
                             outcome = "command-skipped"
                         }
-                        self.status = .idle
                     } else if finalText.isEmpty || SpeechGate.isJunk(finalText) {
                         self.showNoSpeech()  // 무음·잡음·환각 토큰 — 삽입하지 않음 (스펙)
                         outcome = "no-speech"
                     } else {
+                        var copiedInstead = false
                         if onboardingActive {
                             outcome = "onboarding"
-                        } else if !sameAppInFront() {
+                        } else if TextInserter.canAutoInsert, decision == .copyOnly {
+                            // 받아쓰는 사이 다른 앱으로 넘어갔다 — 그 앱에 붙여넣지 않는다.
                             TextInserter.copy(finalText)
                             Notifier.copiedAfterAppSwitch()
+                            copiedInstead = true
                             outcome = "copied-app-switched"
                         } else {
                             switch TextInserter.insert(finalText) {
@@ -340,12 +384,13 @@ final class AppState: ObservableObject {
                                 outcome = "copied"
                             case .pasted:
                                 outcome = "pasted"
-                                if let command {
+                                if let command, decision == .insert(sendCommand: true) {
                                     // 대상 앱이 ⌘V를 소화한 뒤 키가 도착해야 한다 (스펙: 0.25초).
                                     // 그 사이 새 녹음이 시작됐거나(상태 변화) 앱이 바뀌었으면 키를
                                     // 쏘지 않는다 — 지연된 Return이 다른 맥락에 꽂히는 사고 방지.
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-                                        guard let self, case .idle = self.status, sameAppInFront() else { return }
+                                        guard let self, case .idle = self.status,
+                                              decide() == .insert(sendCommand: true) else { return }
                                         TextInserter.press(command)
                                         SoundPlayer.shared.playCommand()
                                     }
@@ -354,42 +399,57 @@ final class AppState: ObservableObject {
                         }
                         self.history.append(finalText)
                         self.lastResult = finalText
-                        self.status = .idle
+                        if copiedInstead { self.showCopied() } else { self.status = .idle }
                         // 붙여넣기 경로와 무관하게 전사 결과를 브로드캐스트 —
                         // 온보딩 튜토리얼이 합성 ⌘V 성공 여부에 기대지 않고 직접 표시.
                         NotificationCenter.default.post(name: .badasseoDidTranscribe, object: finalText)
                     }
                     self.lastDictationEndedAt = Date()
-                    self.logLatency(audioSeconds: Double(samples.count) / 16000, heldSeconds: heldSeconds,
+                    self.logLatency(audioSeconds: audioSeconds, heldSeconds: heldSeconds,
                                     idleSeconds: idleSeconds, pressureLevel: pressureLevel, timing: timing,
                                     keyUp: keyUp, usageAtKeyUp: usageAtKeyUp, outcome: outcome)
                 }
-            } catch WhisperError.modelLoadFailed {
-                await MainActor.run { self?.status = .error(L("모델 없음: \(modelPath)")) }
             } catch {
-                await MainActor.run { self?.status = .error(L("전사 실패 — 다시 시도해 주세요")) }
+                // 모델 파일은 beginRecording에서 이미 확인했다 — 여기서의 로드 실패는 파일이
+                // 없어서가 아니라 메모리 부족 같은 일시적 원인이라, 다시 시도하라고 안내한다.
+                let loadFailed = if case WhisperError.modelLoadFailed = error { true } else { false }
+                await MainActor.run {
+                    guard let self else { return }
+                    self.status = .error(loadFailed ? L("모델을 불러오지 못했어요 — 다시 시도해 주세요")
+                                                    : L("전사 실패 — 다시 시도해 주세요"))
+                    self.lastDictationEndedAt = Date()
+                    self.logLatency(audioSeconds: audioSeconds, heldSeconds: heldSeconds,
+                                    idleSeconds: idleSeconds, pressureLevel: pressureLevel, timing: nil,
+                                    keyUp: keyUp, usageAtKeyUp: usageAtKeyUp,
+                                    outcome: loadFailed ? "load-failed" : "transcribe-failed")
+                }
             }
         }
     }
 
+    /// 받아쓰기 한 건의 지연 로그. `timing`이 nil이면 전사가 실패한 경우다(그 값들은 -1).
     private func logLatency(audioSeconds: Double, heldSeconds: Double, idleSeconds: Double?,
-                            pressureLevel: Int32, timing: EngineTiming, keyUp: Date,
+                            pressureLevel: Int32, timing: EngineTiming?, keyUp: Date,
                             usageAtKeyUp: ProcessUsage?, outcome: String) {
+        let ms = { (seconds: Double) in Int((seconds * 1000).rounded()) }
         let total = Date().timeIntervalSince(keyUp)
         let used = ProcessUsage.current().flatMap { now in usageAtKeyUp.map { now.delta(since: $0) } }
         // 엔진이 원래 올라와 있었는지, 이번에 로드됐다면 말하는 동안이었는지 키를 뗀 뒤였는지.
         let engineState: String
-        if timing.info.loadedNow {
-            engineState = "loaded-after-keyup"
-        } else if timing.info.secondsSinceLoad <= heldSeconds + timing.waitSeconds {
-            engineState = "loaded-while-speaking"
+        if let timing {
+            if timing.info.loadedNow {
+                engineState = "loaded-after-keyup"
+            } else if timing.info.secondsSinceLoad <= heldSeconds + timing.waitSeconds {
+                engineState = "loaded-while-speaking"
+            } else {
+                engineState = "resident"
+            }
         } else {
-            engineState = "resident"
+            engineState = "unknown"
         }
-        let ms = { (seconds: Double) in Int((seconds * 1000).rounded()) }
-        // total: 키를 뗀 뒤 결과 처리까지. wait: 그중 엔진이 일을 시작하기까지(로드 포함).
-        // disk: 그동안 디스크에서 읽은 양 — 크면 모델 로드이거나 스왑에서 되읽은 것이다.
-        Self.latencyLog.notice("dictation audio=\(audioSeconds, format: .fixed(precision: 1))s total=\(ms(total))ms wait=\(ms(timing.waitSeconds))ms whisper=\(ms(timing.whisperSeconds))ms engine=\(engineState, privacy: .public) idle=\(idleSeconds.map { Int($0) } ?? -1)s pressure=\(pressureLevel) disk=\(Int(used?.diskMegabytesRead ?? -1))MB cpu=\(used.map { ms($0.cpuSeconds) } ?? -1)ms outcome=\(outcome, privacy: .public)")
+        // held: 키를 누르고 있던 시간. total: 키를 뗀 뒤 결과 처리까지. wait: 그중 엔진이 일을
+        // 시작하기까지(로드 포함). disk: 키를 뗀 뒤 디스크에서 읽은 양 — 크면 스왑에서 되읽은 것이다.
+        Self.latencyLog.notice("dictation audio=\(audioSeconds, format: .fixed(precision: 1))s held=\(ms(heldSeconds))ms total=\(ms(total))ms wait=\(timing.map { ms($0.waitSeconds) } ?? -1)ms whisper=\(timing.map { ms($0.whisperSeconds) } ?? -1)ms engine=\(engineState, privacy: .public) idle=\(idleSeconds.map { Int($0) } ?? -1)s pressure=\(pressureLevel) disk=\(Int(used?.diskMegabytesRead ?? -1))MB cpu=\(used.map { ms($0.cpuSeconds) } ?? -1)ms outcome=\(outcome, privacy: .public)")
     }
 }
 

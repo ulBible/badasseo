@@ -9,6 +9,8 @@ public enum InsertResult { case pasted, copiedOnly }
 @MainActor
 public enum TextInserter {
     public static var hasAccessibility: Bool { AXIsProcessTrusted() }
+    /// ⌘V 합성으로 커서 위치에 넣을 수 있는 상태인가 — 권한이 있고 보안 입력(암호 필드)이 아닐 때.
+    public static var canAutoInsert: Bool { hasAccessibility && !IsSecureEventInputEnabled() }
 
     @discardableResult
     public static func insert(_ text: String) -> InsertResult {
@@ -26,7 +28,7 @@ public enum TextInserter {
 
         // 권한 없음 / 보안 입력 활성(암호 필드 — 합성 이벤트가 시스템에서 무시됨) /
         // 이벤트 생성 실패 → 붙여넣기 시도하지 않고 클립보드에만 남김 (복원도 안 함 — 사용자가 ⌘V)
-        guard hasAccessibility, !IsSecureEventInputEnabled() else { return .copiedOnly }
+        guard canAutoInsert else { return .copiedOnly }
         let src = CGEventSource(stateID: .combinedSessionState)
         let vKey = CGKeyCode(9)  // kVK_ANSI_V
         guard let down = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: true),

@@ -1,4 +1,5 @@
 @preconcurrency import AVFoundation
+import BadasseoCore
 
 /// 푸시투토크 녹음: start()~stop() 사이 마이크 입력을 16kHz mono Float로 축적.
 ///
@@ -42,6 +43,12 @@ public final class AudioCapture: @unchecked Sendable {
             input.removeTap(onBus: 0)
             throw error
         }
+    }
+
+    /// 지금까지 녹음된 소리에 말소리가 있는가 (무음 판정 기준은 `SpeechGate`). 녹음 중에 읽는다.
+    public var hasSpeechSoFar: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return !SpeechGate.isSilence(samples: samples)
     }
 
     public func stop() -> [Float] {

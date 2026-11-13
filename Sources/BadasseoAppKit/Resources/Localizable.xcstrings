@@ -421,22 +421,22 @@
         }
       }
     },
-    "모델 없음: %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Model not found: %@"
-          }
-        }
-      }
-    },
     "모델을 받는 중이에요 — 조금만 기다려 주세요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Downloading the model — just a moment"
+          }
+        }
+      }
+    },
+    "모델을 불러오지 못했어요 — 다시 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the model — please try again"
           }
         }
       }

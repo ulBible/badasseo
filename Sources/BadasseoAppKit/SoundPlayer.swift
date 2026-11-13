@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 
 /// 입력 시작/종료음 — 기본 꺼짐(스펙: 기본 무음이 차별점). 설정 토글로만 켬.
@@ -32,6 +33,9 @@ final class SoundPlayer {
 
     func playStart() { guard Self.isEnabled(Self.startKey) else { return }; start?.currentTime = 0; start?.play() }
     func playStop() { guard Self.isEnabled(Self.stopKey) else { return }; stop?.currentTime = 0; stop?.play() }
+    /// "평소와 다르게 처리됐다"는 주의음(시스템 경고음) — 자동 입력 대신 클립보드에만 담았거나
+    /// 명령 키를 보내지 않았을 때. 전용 토글은 두지 않고 종료음 설정을 따른다.
+    func playAttention() { guard Self.isEnabled(Self.stopKey) else { return }; NSSound.beep() }
     /// 음성 명령 실행 확인음.
     func playCommand() { guard Self.isEnabled(Self.commandKey) else { return }; command?.currentTime = 0; command?.play() }
 }

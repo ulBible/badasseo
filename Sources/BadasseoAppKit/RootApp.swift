@@ -91,6 +91,9 @@ public struct BadasseoRootApp: App {
             if case .noSpeech = state.status {
                 Text(L("다시 말해주세요"))
             }
+            if case .copied = state.status {
+                Text(L("클립보드에 담았어요"))
+            }
             if !state.lastResult.isEmpty {
                 Text(L("마지막: \(String(state.lastResult.prefix(30)))"))
             }
@@ -183,6 +186,7 @@ public struct BadasseoRootApp: App {
         case .recording: "mic.fill"
         case .processing: "hourglass"
         case .noSpeech: "mic.slash"
+        case .copied: "doc.on.clipboard"
         case .error: "exclamationmark.triangle"
         }
     }
