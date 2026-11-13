@@ -521,6 +521,16 @@
         }
       }
     },
+    "받아쓰는 사이 다른 앱으로 넘어가서 자동 입력하지 않았어요. ⌘V로 붙여넣으세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You switched apps while it was transcribing, so it wasn't inserted automatically. Paste it with ⌘V."
+          }
+        }
+      }
+    },
     "발화 끝 명령어 인식": {
       "localizations": {
         "en": {

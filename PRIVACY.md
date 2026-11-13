@@ -1,6 +1,6 @@
 # 받아써 개인정보 처리방침
 
-_최종 수정: 2026년 7월 17일_
+_최종 수정: 2026년 11월 13일_
 
 받아써는 macOS용 한국어 음성입력 앱입니다. 프라이버시 원칙은 단순합니다 —
 **받아써는 아무것도 수집하지 않습니다.**
@@ -19,7 +19,9 @@ _최종 수정: 2026년 7월 17일_
 - **커스텀 사전** — 사용자가 설정에서 추가한 `{말한 것 → 쓸 것}` 항목. 로컬 JSON 파일.
 - **입력 히스토리** — 최근 전사 결과 최대 500개. 로컬 JSON 파일, 설정 창 히스토리
   탭에서 전체 삭제 가능.
-- 두 항목 모두 이 맥을 벗어나지 않습니다.
+- **진단 로그** — 받아쓰기마다 걸린 시간 같은 숫자만 macOS 통합 로그에 한 줄씩 남깁니다
+  (느려졌을 때 원인을 찾기 위한 것). 말한 내용이나 오디오는 남기지 않습니다.
+- 위 항목은 모두 이 맥을 벗어나지 않습니다.
 
 ## 받아써가 하지 않는 것
 
@@ -54,7 +56,7 @@ _최종 수정: 2026년 7월 17일_
 
 # Badasseo Privacy Policy
 
-_Last updated: July 17, 2026_
+_Last updated: November 13, 2026_
 
 Badasseo is a Korean voice-input app for macOS. Our privacy principle is simple —
 **Badasseo collects nothing.**
@@ -74,7 +76,10 @@ Badasseo is a Korean voice-input app for macOS. Our privacy principle is simple 
   A local JSON file.
 - **Input history** — up to the last 500 transcriptions. A local JSON file,
   viewable and clearable from the Settings History tab.
-- Both stay on your Mac.
+- **Diagnostic log** — one line per dictation in the macOS unified log, containing
+  only numbers such as how long it took (to find the cause when it gets slow).
+  Never what you said, never audio.
+- All of the above stay on your Mac.
 
 ## What Badasseo does NOT do
 

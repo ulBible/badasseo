@@ -42,6 +42,10 @@ public final class ModifierHoldMonitor {
     public var onEnd: (() -> Void)?
     public var onCancel: (() -> Void)?
 
+    /// 홀드 중 다른 키가 눌려 조합 단축키로 판정된 상태인가. `onCancel`은 키를 뗄 때에야
+    /// 불리므로, 그 전에 "이 홀드는 받아쓰기가 아니다"를 알아야 하는 쪽이 읽는다.
+    public var isComboInProgress: Bool { holding && canceled }
+
     public init() {}
 
     /// 로컬 모니터만 설치 — 권한이 필요 없고, macOS의 권한 프롬프트/설정 유도를
