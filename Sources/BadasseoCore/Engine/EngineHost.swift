@@ -15,12 +15,16 @@ public struct EngineRunInfo: Sendable, Equatable {
 /// 로드가 끝나기 전에 전사를 요청해도 그 로드를 기다렸다가 같은 엔진을 쓴다 — 엔진이
 /// 둘 생기지 않는다.
 ///
+/// 엔진은 큐 밖으로 내보내지 않는다 — `run`의 `body`는 엔진을 반환하거나 다른 곳에 보관하면
+/// 안 된다(그러면 해제가 큐 밖에서 일어나거나 엔진이 동시에 쓰일 수 있다).
+///
 /// `@unchecked Sendable`: 가변 상태(`engine`·`loadedAt`·`lastUse`)는 `queue` 위에서만
 /// 읽고 쓴다.
 public final class EngineHost<Engine>: @unchecked Sendable {
     public enum UnloadResult: Sendable, Equatable { case unloaded, stillInUse, notLoaded }
 
-    private let queue = DispatchQueue(label: "app.badasseo.engine", qos: .userInitiated)
+    static var queueLabel: String { "app.badasseo.engine" }
+    private let queue = DispatchQueue(label: queueLabel, qos: .userInitiated)
     private let clock: @Sendable () -> TimeInterval
     private let load: @Sendable () throws -> Engine
     private var engine: Engine?
@@ -33,9 +37,30 @@ public final class EngineHost<Engine>: @unchecked Sendable {
         self.load = load
     }
 
+    deinit {
+        // 호스트의 마지막 참조가 어느 스레드에서 사라지든 엔진 해제는 엔진 큐에서 한다.
+        // (큐에 남은 작업은 self를 붙잡고 있으므로, 여기 왔다면 큐는 비어 있다.)
+        let handoff = Handoff(engine)
+        engine = nil
+        queue.async { handoff.engine = nil }
+    }
+
+    /// 엔진의 마지막 참조를 큐로 넘겨 거기서 놓게 하는 상자.
+    private final class Handoff: @unchecked Sendable {
+        var engine: Engine?
+        init(_ engine: Engine?) { self.engine = engine }
+    }
+
     /// 엔진이 없으면 미리 로드한다. 실패는 삼킨다 — 뒤따르는 `run`이 다시 시도해 에러를 낸다.
-    public func prepare() {
+    ///
+    /// `minIdle`을 주면, 올라와 있는 엔진이라도 그만큼 쉬었으면 버리고 새로 로드한다 —
+    /// 오래 쉰 엔진의 메모리는 스왑으로 나갔을 수 있고, 그걸 되읽는 것보다 파일에서 새로
+    /// 읽는 쪽이 빠르다.
+    public func prepare(dropIfIdleFor minIdle: TimeInterval? = nil) {
         queue.async {
+            if let minIdle, self.engine != nil, self.clock() - self.lastUse >= minIdle {
+                self.engine = nil
+            }
             _ = try? self.loadedEngine()
             self.lastUse = self.clock()
         }

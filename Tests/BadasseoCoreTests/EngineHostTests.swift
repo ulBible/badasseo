@@ -15,11 +15,36 @@ private final class Counter: @unchecked Sendable {
     @discardableResult func increment() -> Int { lock.lock(); defer { lock.unlock() }; n += 1; return n }
 }
 
+/// 지금 실행 중인 디스패치 큐의 라벨.
+private func currentQueueLabel() -> String { String(cString: __dispatch_queue_get_label(nil)) }
+
+private final class Labels: @unchecked Sendable {
+    private let lock = NSLock()
+    private var items: [String] = []
+    var all: [String] { lock.lock(); defer { lock.unlock() }; return items }
+    func record(_ label: String) { lock.lock(); items.append(label); lock.unlock() }
+}
+
+/// 동시에 살아 있는 엔진 수와 그 최댓값.
+private final class LiveCount: @unchecked Sendable {
+    private let lock = NSLock()
+    private var live = 0
+    private var maxLive = 0
+    var peak: Int { lock.lock(); defer { lock.unlock() }; return maxLive }
+    func born() { lock.lock(); live += 1; maxLive = max(maxLive, live); lock.unlock() }
+    func died() { lock.lock(); live -= 1; lock.unlock() }
+}
+
 private final class FakeEngine {
     let id: Int
     private let freed: Counter
-    init(id: Int, freed: Counter) { self.id = id; self.freed = freed }
-    deinit { freed.increment() }
+    private let live: LiveCount
+    private let freedOn: Labels
+    init(id: Int, freed: Counter, live: LiveCount, freedOn: Labels) {
+        self.id = id; self.freed = freed; self.live = live; self.freedOn = freedOn
+        live.born()
+    }
+    deinit { freed.increment(); live.died(); freedOn.record(currentQueueLabel()) }
 }
 
 private struct LoadFailed: Error {}
@@ -29,14 +54,18 @@ final class EngineHostTests: XCTestCase {
     private let clock = TestClock()
     private let loads = Counter()
     private let freed = Counter()
+    private let live = LiveCount()
+    private let loadedOn = Labels()
+    private let freedOn = Labels()
 
     /// `failFirst`번째까지의 로드는 실패한다.
     private func makeHost(failFirst: Int = 0) -> EngineHost<FakeEngine> {
-        let (clock, loads, freed) = (clock, loads, freed)
+        let (clock, loads, freed, live, loadedOn, freedOn) = (clock, loads, freed, live, loadedOn, freedOn)
         return EngineHost(clock: { clock.now }) {
             let n = loads.increment()
+            loadedOn.record(currentQueueLabel())
             if n <= failFirst { throw LoadFailed() }
-            return FakeEngine(id: n, freed: freed)
+            return FakeEngine(id: n, freed: freed, live: live, freedOn: freedOn)
         }
     }
 
@@ -140,6 +169,83 @@ final class EngineHostTests: XCTestCase {
         host.prepare()
         let result = await host.unloadIfIdle(minIdle: 30)
         XCTAssertEqual(result, .stillInUse)
+    }
+
+    /// 엔진은 1.8GB다 — 해제와 재로드를 아무리 반복해도 둘이 동시에 살아 있으면 안 된다
+    /// (과거 엔진 9개 = 16GB 장애).
+    func testNeverMoreThanOneEngineAliveAcrossReloads() async throws {
+        let host = makeHost()
+        for _ in 0..<20 {
+            _ = try await host.run { engine, _ in engine.id }
+            let result = await host.unloadIfIdle(minIdle: 0)
+            XCTAssertEqual(result, .unloaded)
+        }
+        XCTAssertEqual(loads.value, 20)
+        XCTAssertEqual(live.peak, 1)
+    }
+
+    /// whisper 컨텍스트의 생성과 해제(whisper_free)는 전사와 같은 큐에서 일어나야 한다.
+    func testEngineIsLoadedAndFreedOnTheEngineQueue() async throws {
+        let host = makeHost()
+        _ = try await host.run { engine, _ in engine.id }
+        _ = await host.unloadIfIdle(minIdle: 0)
+        XCTAssertEqual(loadedOn.all, [EngineHost<FakeEngine>.queueLabel])
+        XCTAssertEqual(freedOn.all, [EngineHost<FakeEngine>.queueLabel])
+    }
+
+    /// 호스트를 버릴 때도 엔진 해제는 엔진 큐에서 — 버린 쪽 스레드(예: 메인)에서 돌면 안 된다.
+    func testDroppingTheHostFreesTheEngineOnTheEngineQueue() async throws {
+        var host: EngineHost<FakeEngine>? = makeHost()
+        _ = try await host?.run { engine, _ in engine.id }
+        host = nil
+        for _ in 0..<200 where freed.value == 0 { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertEqual(freedOn.all, [EngineHost<FakeEngine>.queueLabel])
+    }
+
+    /// 전사가 도는 중에 들어온 해제 요청은 그 전사 뒤에 줄을 선다 — 방금 쓴 엔진은 쉰 게 아니다.
+    func testUnloadQueuedBehindRunningWorkKeepsTheEngine() async throws {
+        let host = makeHost()
+        let started = DispatchSemaphore(value: 0)
+        let finish = DispatchSemaphore(value: 0)
+        async let ran: Int = host.run { engine, _ in
+            started.signal()
+            finish.wait()
+            return engine.id
+        }
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async { started.wait(); continuation.resume() }
+        }
+        async let unloaded = host.unloadIfIdle(minIdle: 30)
+        try await Task.sleep(for: .milliseconds(20))
+        finish.signal()
+        let (id, result) = try await (ran, unloaded)
+        XCTAssertEqual(id, 1)
+        XCTAssertEqual(result, .stillInUse)
+        XCTAssertEqual(freed.value, 0)
+    }
+
+    /// 오래 쉰 엔진은 메모리가 스왑으로 나갔을 수 있다 — 키를 누를 때 그런 엔진은 버리고
+    /// 파일에서 새로 읽는다(스왑에서 되읽는 것보다 빠르다).
+    func testPrepareReplacesAnEngineThatIdledTooLong() async throws {
+        let host = makeHost()
+        _ = try await host.run { engine, _ in engine.id }
+        clock.advance(31)
+        host.prepare(dropIfIdleFor: 30)
+        let (id, info) = try await host.run { engine, info in (engine.id, info) }
+        XCTAssertEqual(id, 2)
+        XCTAssertFalse(info.loadedNow)
+        XCTAssertEqual(freed.value, 1)
+        XCTAssertEqual(live.peak, 1)
+    }
+
+    func testPrepareKeepsAnEngineUsedRecently() async throws {
+        let host = makeHost()
+        _ = try await host.run { engine, _ in engine.id }
+        clock.advance(10)
+        host.prepare(dropIfIdleFor: 30)
+        let id = try await host.run { engine, _ in engine.id }
+        XCTAssertEqual(id, 1)
+        XCTAssertEqual(loads.value, 1)
     }
 
     func testRunReportsSecondsSinceLoad() async throws {
