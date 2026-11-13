@@ -19,8 +19,10 @@ _최종 수정: 2026년 11월 13일_
 - **커스텀 사전** — 사용자가 설정에서 추가한 `{말한 것 → 쓸 것}` 항목. 로컬 JSON 파일.
 - **입력 히스토리** — 최근 전사 결과 최대 500개. 로컬 JSON 파일, 설정 창 히스토리
   탭에서 전체 삭제 가능.
-- **진단 로그** — 받아쓰기마다 걸린 시간 같은 숫자만 macOS 통합 로그에 한 줄씩 남깁니다
-  (느려졌을 때 원인을 찾기 위한 것). 말한 내용이나 오디오는 남기지 않습니다.
+- **진단 로그** — 받아쓰기마다 걸린 시간·오디오 길이·메모리 상태 같은 수치와 처리 결과의
+  종류(붙여넣음, 클립보드 복사, 명령 등), 그리고 손쉬운 사용 권한이 켜지거나 꺼진 시점을
+  macOS 통합 로그에 남깁니다(느려졌을 때 원인을 찾기 위한 것). 말한 내용, 오디오, 어느
+  앱에서 썼는지는 남기지 않습니다. 이 로그는 macOS가 관리하며 시간이 지나면 지워집니다.
 - 위 항목은 모두 이 맥을 벗어나지 않습니다.
 
 ## 받아써가 하지 않는 것
@@ -34,6 +36,10 @@ _최종 수정: 2026년 11월 13일_
 전사 텍스트를 커서 위치에 넣기 위해 클립보드를 잠깐 사용합니다. 기존 클립보드
 내용은 삽입 직후 원래대로 복원되며, 전사 텍스트에는 `org.nspasteboard.ConcealedType`
 마커를 붙여 vClips 등 클립보드 매니저가 이를 이력에 기록하지 않도록 합니다.
+
+자동 입력 없이 클립보드에만 담는 경우(손쉬운 사용 권한이 없을 때, 암호 입력 칸, 받아쓰는
+사이 다른 앱으로 넘어갔을 때)에는 전사 텍스트가 클립보드에 남고 이전 내용은 복원되지
+않습니다.
 
 ## 권한
 
@@ -76,9 +82,12 @@ Badasseo is a Korean voice-input app for macOS. Our privacy principle is simple 
   A local JSON file.
 - **Input history** — up to the last 500 transcriptions. A local JSON file,
   viewable and clearable from the Settings History tab.
-- **Diagnostic log** — one line per dictation in the macOS unified log, containing
-  only numbers such as how long it took (to find the cause when it gets slow).
-  Never what you said, never audio.
+- **Diagnostic log** — for each dictation, figures such as how long it took, the
+  audio length and the memory state, the kind of outcome (pasted, copied to the
+  clipboard, command, …), and the moments Accessibility permission was turned on
+  or off are written to the macOS unified log (to find the cause when it gets
+  slow). Never what you said, never audio, never which app you were using. macOS
+  manages that log and it expires over time.
 - All of the above stay on your Mac.
 
 ## What Badasseo does NOT do
@@ -93,6 +102,10 @@ Badasseo briefly uses the clipboard to insert transcribed text at your cursor.
 Your prior clipboard contents are restored immediately after insertion, and the
 transcribed text is tagged with the `org.nspasteboard.ConcealedType` marker so
 clipboard managers (e.g. vClips) don't record it in their history.
+
+When the text is only copied instead of inserted (no Accessibility permission, a
+password field, or you switched apps while it was transcribing), it stays on the
+clipboard and the previous contents are not restored.
 
 ## Permissions
 
