@@ -203,8 +203,11 @@ final class EngineHostTests: XCTestCase {
     }
 
     /// 전사가 도는 중에 들어온 해제 요청은 그 전사 뒤에 줄을 선다 — 방금 쓴 엔진은 쉰 게 아니다.
+    /// (오래 쉰 엔진으로 31초짜리 전사를 한 경우: 전사가 끝난 시점이 마지막 사용이어야 한다.)
     func testUnloadQueuedBehindRunningWorkKeepsTheEngine() async throws {
         let host = makeHost()
+        host.prepare()
+        clock.advance(1000)
         let started = DispatchSemaphore(value: 0)
         let finish = DispatchSemaphore(value: 0)
         async let ran: Int = host.run { engine, _ in
@@ -215,6 +218,7 @@ final class EngineHostTests: XCTestCase {
         await withCheckedContinuation { continuation in
             DispatchQueue.global().async { started.wait(); continuation.resume() }
         }
+        clock.advance(31)
         async let unloaded = host.unloadIfIdle(minIdle: 30)
         try await Task.sleep(for: .milliseconds(20))
         finish.signal()
