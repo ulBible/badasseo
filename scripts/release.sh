@@ -97,9 +97,12 @@ codesign --verify --strict --verbose=2 "${APP_BUNDLE}"
 
 echo "==> Notarizing (profile: ${NOTARY_PROFILE}) — takes a few minutes"
 mkdir -p "${DIST_DIR}"
-# Old zips would end up in the appcast (and get re-signed) — keep dist/ to
-# exactly this release.
-rm -f "${DIST_DIR}"/*.zip "${DIST_DIR}"/appcast.xml
+# Old archives would end up in the appcast (and get re-signed) — keep dist/ to
+# exactly this release. That includes the previous release's DMG: left in
+# place, generate_appcast lists it as an older version under THIS release's
+# download URL and emits a .delta the publish step never uploads (seen on the
+# 1.2.0 rehearsal, the first release after DMGs were introduced).
+rm -f "${DIST_DIR}"/*.zip "${DIST_DIR}"/*.dmg "${DIST_DIR}"/*.delta "${DIST_DIR}"/appcast.xml
 ditto -c -k --keepParent "${APP_BUNDLE}" "${ZIP_PATH}"
 xcrun notarytool submit "${ZIP_PATH}" \
   --keychain-profile "${NOTARY_PROFILE}" --wait
