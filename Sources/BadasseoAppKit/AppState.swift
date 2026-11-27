@@ -355,10 +355,15 @@ final class AppState: ObservableObject {
                             self.status = .idle
                             outcome = "onboarding"
                         } else if decision == .insert(sendCommand: true) {
-                            TextInserter.press(command)
-                            SoundPlayer.shared.playCommand()
+                            if TextInserter.press(command, block: TextInserter.pasteBlock()) {
+                                SoundPlayer.shared.playCommand()
+                                outcome = "command"
+                            } else {
+                                // 권한이 없거나 보안 입력 때문에 키를 보내지 못했다 — 성공 소리를 내지 않는다.
+                                SoundPlayer.shared.playAttention()
+                                outcome = "command-blocked"
+                            }
                             self.status = .idle
-                            outcome = "command"
                         } else {
                             // 앱이 바뀌었거나 너무 늦었다 — 키를 보내지 않는다. 소리로만 알린다.
                             SoundPlayer.shared.playAttention()
@@ -370,21 +375,24 @@ final class AppState: ObservableObject {
                         outcome = "no-speech"
                     } else {
                         var copiedInstead = false
+                        // 막을지는 한 번만 판단해 붙여넣기와 명령 키에 같은 답을 쓴다(TextInserter.pasteBlock).
+                        let block = onboardingActive ? nil : TextInserter.pasteBlock()
                         if onboardingActive {
                             outcome = "onboarding"
-                        } else if TextInserter.canAutoInsert, decision == .copyOnly {
+                        } else if block == nil, decision == .copyOnly {
                             // 받아쓰는 사이 다른 앱으로 넘어갔다 — 그 앱에 붙여넣지 않는다.
                             TextInserter.copy(finalText)
                             Notifier.copiedAfterAppSwitch()
                             copiedInstead = true
                             outcome = "copied-app-switched"
                         } else {
-                            switch TextInserter.insert(finalText) {
+                            // block이 nil이면 여기서 decision은 .insert다 — 바로 위에서 .copyOnly를 걸렀다.
+                            switch TextInserter.insert(finalText, block: block) {
                             case .copiedOnly:
                                 Notifier.copiedOnly()  // 키 합성도 불가한 상태 — 명령 생략
                                 outcome = "copied"
                             case .copiedSecureInput:
-                                // 권한은 켜져 있는데 보안 입력(맨 앞 앱이 켰거나 암호 칸) 때문에
+                                // 권한은 켜져 있는데 보안 입력(암호 칸일 수 있다) 때문에
                                 // 건너뛰었다. 사용자가 예상하지 못하는 상황이라 앱을 바꿨을 때처럼
                                 // 아이콘과 소리로도 알린다.
                                 Notifier.copiedSecureInput()
@@ -399,8 +407,9 @@ final class AppState: ObservableObject {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                                         guard let self, case .idle = self.status,
                                               decide() == .insert(sendCommand: true) else { return }
-                                        TextInserter.press(command)
-                                        SoundPlayer.shared.playCommand()
+                                        if TextInserter.press(command, block: block) {
+                                            SoundPlayer.shared.playCommand()
+                                        }
                                     }
                                 }
                             }
