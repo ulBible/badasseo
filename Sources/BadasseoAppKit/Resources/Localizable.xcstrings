@@ -551,6 +551,16 @@
         }
       }
     },
+    "보안 입력(암호 입력용)이 켜져 있어 자동으로 넣지 못했어요. ⌘V로 붙여넣으세요. 암호 칸이 아닌데도 계속 이러면, 최근에 암호를 입력한 앱을 종료해 보세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secure input (used for password fields) is on, so the text wasn’t inserted automatically. Paste it with ⌘V. If this keeps happening outside a password field, quit the app where you most recently typed a password."
+          }
+        }
+      }
+    },
     "붙여넣기: 활성": {
       "localizations": {
         "en": {

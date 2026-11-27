@@ -383,6 +383,13 @@ final class AppState: ObservableObject {
                             case .copiedOnly:
                                 Notifier.copiedOnly()  // 키 합성도 불가한 상태 — 명령 생략
                                 outcome = "copied"
+                            case .copiedSecureInput:
+                                // 권한은 켜져 있는데 보안 입력(맨 앞 앱이 켰거나 암호 칸) 때문에
+                                // 건너뛰었다. 사용자가 예상하지 못하는 상황이라 앱을 바꿨을 때처럼
+                                // 아이콘과 소리로도 알린다.
+                                Notifier.copiedSecureInput()
+                                copiedInstead = true
+                                outcome = "copied-secure-input"
                             case .pasted:
                                 outcome = "pasted"
                                 if let command, decision == .insert(sendCommand: true) {
