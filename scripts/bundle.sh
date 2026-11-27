@@ -3,7 +3,11 @@ set -euo pipefail
 
 CONFIG="${1:-release}"
 APP_NAME="Badasseo"
-APP_BUNDLE="build/${APP_NAME}.app"
+# Where the finished bundle lands. release.sh points this at its own staging
+# path so a release never touches the dev build in build/ (see below).
+APP_BUNDLE="${BADASSEO_APP_BUNDLE:-build/${APP_NAME}.app}"
+# Assembled and signed here first, then synced into APP_BUNDLE.
+STAGE_BUNDLE="build/.assemble/${APP_NAME}.app"
 DERIVED_DATA=".xcbuild"
 
 # Build with xcodebuild, not `swift build`. The two build systems generate
@@ -68,20 +72,26 @@ if [[ "${LINKED_SDK}" != "${ACTIVE_SDK}" ]]; then
   exit 1
 fi
 
+# Assemble in a scratch bundle and sync it into APP_BUNDLE, never rm -rf
+# APP_BUNDLE itself: when that bundle is the one you run (the dev build in
+# build/), deleting it makes tccd treat the app as removed and drop its
+# Microphone/Accessibility grants — auto-paste then fails silently while the
+# app still logs "pasted" (2026-11-27, a release.sh run under a running dev
+# build). Same reason as the /Applications install below.
 echo "==> Assembling ${APP_BUNDLE}"
-rm -rf "${APP_BUNDLE}"
-mkdir -p "${APP_BUNDLE}/Contents/MacOS"
-mkdir -p "${APP_BUNDLE}/Contents/Resources"
+rm -rf "${STAGE_BUNDLE}"
+mkdir -p "${STAGE_BUNDLE}/Contents/MacOS"
+mkdir -p "${STAGE_BUNDLE}/Contents/Resources"
 
-cp "${BUILD_DIR}/${APP_NAME}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
-cp "Resources/Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
-cp "Resources/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
+cp "${BUILD_DIR}/${APP_NAME}" "${STAGE_BUNDLE}/Contents/MacOS/${APP_NAME}"
+cp "Resources/Info.plist" "${STAGE_BUNDLE}/Contents/Info.plist"
+cp "Resources/AppIcon.icns" "${STAGE_BUNDLE}/Contents/Resources/AppIcon.icns"
 
 # Package resource bundles, found via Bundle.main.resourceURL at runtime.
 copied_bundles=0
 for resource_bundle in "${BUILD_DIR}"/*.bundle; do
   [[ -e "${resource_bundle}" ]] || continue
-  cp -R "${resource_bundle}" "${APP_BUNDLE}/Contents/Resources/"
+  cp -R "${resource_bundle}" "${STAGE_BUNDLE}/Contents/Resources/"
   copied_bundles=$((copied_bundles + 1))
 done
 # An app without its package resource bundles launches here (the dev .build
@@ -103,11 +113,11 @@ if [[ -z "${WHISPER_FRAMEWORK}" ]]; then
   echo "error: whisper.framework not found in ${BUILD_DIR} — the app would crash at launch (dyld)." >&2
   exit 1
 fi
-mkdir -p "${APP_BUNDLE}/Contents/Frameworks"
-cp -R "${WHISPER_FRAMEWORK}" "${APP_BUNDLE}/Contents/Frameworks/"
+mkdir -p "${STAGE_BUNDLE}/Contents/Frameworks"
+cp -R "${WHISPER_FRAMEWORK}" "${STAGE_BUNDLE}/Contents/Frameworks/"
 # add_rpath fails if the entry already exists — harmless, so tolerate it.
 install_name_tool -add_rpath "@executable_path/../Frameworks" \
-  "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
+  "${STAGE_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
 
 # Sparkle is a dynamic framework (binary xcframework artifact), linked only
 # into the Badasseo (GitHub) target — see Package.swift. Embed it the same
@@ -124,14 +134,19 @@ if [[ -z "${SPARKLE_FRAMEWORK}" ]]; then
   echo "error: Sparkle.framework not found in ${BUILD_DIR} — auto-updates would crash the app at launch." >&2
   exit 1
 fi
-cp -R "${SPARKLE_FRAMEWORK}" "${APP_BUNDLE}/Contents/Frameworks/"
+cp -R "${SPARKLE_FRAMEWORK}" "${STAGE_BUNDLE}/Contents/Frameworks/"
 
 if [[ "${SIGN_IDENTITY}" == "-" ]]; then
   echo "==> Ad-hoc code signing (no stable identity found — Accessibility grant will reset each build)"
 else
   echo "==> Code signing with identity: ${SIGN_IDENTITY}"
 fi
-codesign --force --deep --sign "${SIGN_IDENTITY}" "${APP_BUNDLE}"
+codesign --force --deep --sign "${SIGN_IDENTITY}" "${STAGE_BUNDLE}"
+
+mkdir -p "${APP_BUNDLE}"
+rsync -a --delete "${STAGE_BUNDLE}/" "${APP_BUNDLE}/"
+rm -rf "build/.assemble"
+codesign --verify --strict "${APP_BUNDLE}"
 
 echo "==> Done: ${APP_BUNDLE}"
 

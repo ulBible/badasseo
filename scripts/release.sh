@@ -23,7 +23,6 @@ set -euo pipefail
 
 VERSION="${1:?usage: release.sh <version> (e.g. 1.0.0)}"
 APP_NAME="Badasseo"
-APP_BUNDLE="build/${APP_NAME}.app"
 NOTARY_PROFILE="${BADASSEO_NOTARY_PROFILE:-vclips-notary}"
 DIST_DIR="dist"
 ZIP_PATH="${DIST_DIR}/${APP_NAME}-${VERSION}.zip"
@@ -48,17 +47,16 @@ if [[ -z "${DEV_ID}" ]]; then
   DEV_ID=$(sed -E 's/.*"(.+)"$/\1/' <<<"${matches}")
 fi
 
-echo "==> Building ${APP_BUNDLE} (via bundle.sh)"
-./scripts/bundle.sh release
-
-# Re-sign a COPY, never the dev build in build/ — re-signing that in place
-# switches its identity away from "Badasseo Self Signed", which invalidates
-# the developer's TCC grants (mic/AX) and bricks the locally installed app
-# (learned the hard way on the 1.0.0 rehearsal).
-mkdir -p "${DIST_DIR}/stage"
-rm -rf "${DIST_DIR}/stage/${APP_NAME}.app"
-ditto "${APP_BUNDLE}" "${DIST_DIR}/stage/${APP_NAME}.app"
+# Build straight into a staging copy and never touch the dev build in build/.
+# Re-signing that in place switches its identity away from "Badasseo Self
+# Signed" (learned on the 1.0.0 rehearsal), and even rebuilding it swaps the
+# files under a running dev app, which loses its mic/AX grants until it is
+# relaunched and re-granted (2026-11-27, the 1.2.1 release).
 APP_BUNDLE="${DIST_DIR}/stage/${APP_NAME}.app"
+rm -rf "${DIST_DIR}/stage"
+mkdir -p "${DIST_DIR}/stage"
+echo "==> Building ${APP_BUNDLE} (via bundle.sh)"
+BADASSEO_APP_BUNDLE="${APP_BUNDLE}" ./scripts/bundle.sh release
 
 echo "==> Stamping version ${VERSION}"
 PB=/usr/libexec/PlistBuddy
