@@ -1,6 +1,6 @@
 # 받아써 개인정보 처리방침
 
-_최종 수정: 2026년 11월 13일_
+_최종 수정: 2026년 11월 28일_
 
 받아써는 macOS용 한국어 음성입력 앱입니다. 프라이버시 원칙은 단순합니다 —
 **받아써는 아무것도 수집하지 않습니다.**
@@ -66,7 +66,7 @@ _최종 수정: 2026년 11월 13일_
 
 # Badasseo Privacy Policy
 
-_Last updated: November 13, 2026_
+_Last updated: November 28, 2026_
 
 Badasseo is a Korean voice-input app for macOS. Our privacy principle is simple —
 **Badasseo collects nothing.**
