@@ -23,10 +23,14 @@ public enum TextInserter {
     ///
     /// 보안 입력이 켜져 있을 때만 손쉬운 사용 정보를 더 읽는다. 평소 받아쓰기에는 비용을 더하지 않는다.
     /// 응답 없는 앱이 앞에 있으면 손쉬운 사용 조회 세 번에 최대 1.5초쯤 메인 스레드가 기다린다.
+    /// 판단은 `PasteBlock`이 하고, 여기서는 사실(칸 종류, 칸이 터미널 앱에 있는가)만 모은다.
     public static func pasteBlock() -> PasteBlock? {
         guard hasAccessibility else { return .noAccessibility }
         guard IsSecureEventInputEnabled() else { return nil }
-        return PasteBlock(trusted: true, secureInputOn: true, focusedField: focusedField())
+        let focus = focusedField()
+        return PasteBlock(trusted: true, secureInputOn: true,
+                          focusedField: focus?.field ?? .unknown,
+                          focusedAppIsTerminal: TerminalApps.isTerminal(bundleID: focus?.bundleID))
     }
 
     /// 손쉬운 사용 조회가 응답 없는 앱에 오래 묶이지 않도록(기본값은 6초) 한 번만 줄여 둔다. 시스템 전체
@@ -35,21 +39,27 @@ public enum TextInserter {
         AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.5)
     }()
 
-    /// 지금 키보드 입력이 가는 칸. 시스템 전체 요소에 묻는다 — 앱을 앞으로 가져오지 않고 뜨는 창(암호
-    /// 관리자의 빠른 입력 창 등)처럼 키보드 입력이 맨 앞 앱이 아닌 곳으로 갈 때도 실제로 입력이 가는 칸을
-    /// 돌려준다. 칸을 찾지 못하면 `.unknown` — 막는 쪽이다.
+    /// 지금 키보드 입력이 가는 칸의 종류와, 그 칸이 속한 앱의 번들 ID. 시스템 전체 요소에 묻는다 — 앱을
+    /// 앞으로 가져오지 않고 뜨는 창(암호 관리자의 빠른 입력 창 등)처럼 키보드 입력이 맨 앞 앱이 아닌 곳으로
+    /// 갈 때도 실제로 입력이 가는 칸을 돌려준다. 앱도 맨 앞 앱이 아니라 이 칸의 PID로 찾는다. 칸을 찾지
+    /// 못하면 nil, PID나 번들 ID를 모르면 번들 ID만 nil — 둘 다 `PasteBlock`이 막는 쪽으로 다룬다.
+    /// 칸의 내용은 읽지 않는다.
     ///
     /// 진단용 명령줄 프로그램에서 이 조회를 재면 화면 서버(WindowServer)에 연결되기 전에는
     /// kAXErrorCannotComplete로 실패한다(2026-11-28 실측). 이 앱은 처음부터 연결돼 있어 해당하지 않는다.
-    private static func focusedField() -> FocusedField {
+    private static func focusedField() -> (field: FocusedField, bundleID: String?)? {
         _ = shortMessagingTimeout
         var focused: CFTypeRef?
         guard AXUIElementCopyAttributeValue(AXUIElementCreateSystemWide(),
                                             kAXFocusedUIElementAttribute as CFString, &focused) == .success,
               let focused, CFGetTypeID(focused) == AXUIElementGetTypeID()
-        else { return .unknown }
+        else { return nil }
         let element = focused as! AXUIElement
-        return FocusedField(role: read(element, kAXRoleAttribute), subrole: read(element, kAXSubroleAttribute))
+        var pid: pid_t = 0
+        let bundleID = AXUIElementGetPid(element, &pid) == .success
+            ? NSRunningApplication(processIdentifier: pid)?.bundleIdentifier : nil
+        return (FocusedField(role: read(element, kAXRoleAttribute), subrole: read(element, kAXSubroleAttribute)),
+                bundleID)
     }
 
     private static func read(_ element: AXUIElement, _ attribute: String) -> FocusedField.Attribute {

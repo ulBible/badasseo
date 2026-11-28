@@ -102,7 +102,7 @@ benchmark on real speech recordings. Methodology and numbers are published in
 |---|---|---|
 | None | No | Full functionality via ⌥Space + manual ⌘V |
 | Microphone | Only while recording | Only while the shortcut is held; discarded immediately after processing |
-| Accessibility | Opt-in | Detecting the right-⌘ hold and auto-inserting text at your cursor (synthesized ⌘V). While secure input is on, checks only the type of the field under your cursor to rule out password fields |
+| Accessibility | Opt-in | Detecting the right-⌘ hold and auto-inserting text at your cursor (synthesized ⌘V). While secure input is on, checks only the type of the field under your cursor and the bundle ID of its app, to rule out password fields and terminals |
 
 ## Support
 

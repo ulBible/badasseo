@@ -38,16 +38,18 @@ _최종 수정: 2026년 11월 13일_
 마커를 붙여 vClips 등 클립보드 매니저가 이를 이력에 기록하지 않도록 합니다.
 
 자동 입력 없이 클립보드에만 담는 경우(손쉬운 사용 권한이 없을 때, 암호 입력 칸이거나
-보안 입력이 켜져 있어 암호 칸이 아니라고 확인하지 못했을 때, 받아쓰는 사이 다른 앱으로
-넘어갔을 때)에는 전사 텍스트가 클립보드에 남고 이전 내용은 복원되지 않습니다.
+보안 입력이 켜져 있어 암호 칸이 아니라고 확인하지 못했을 때, 보안 입력이 켜져 있는 동안
+커서가 터미널 앱에 있을 때, 받아쓰는 사이 다른 앱으로 넘어갔을 때)에는 전사 텍스트가
+클립보드에 남고 이전 내용은 복원되지 않습니다.
 
 ## 권한
 
 - **마이크** — 단축키를 누르고 있는 동안에만 사용. 거부해도 앱은 동작하지 않으며
   (음성입력 앱의 핵심 기능이므로) 시스템 설정으로 안내합니다.
 - **손쉬운 사용** (옵트인) — 우측 ⌘ 홀드 감지와 커서 위치 자동 입력(⌘V 합성)에만
-  사용됩니다. 보안 입력(암호 입력용)이 켜져 있을 때는 자동 입력 전에 커서가 있는 칸이
-  암호 칸인지 확인하려고 그 칸의 종류만 읽습니다 — 칸의 내용은 읽지 않고 저장하지도
+  사용됩니다. 보안 입력(암호 입력용)이 켜져 있을 때는 자동 입력 전에, 커서가 있는 칸이
+  암호 칸인지와 그 칸이 터미널 앱에 있는지 확인하려고 칸의 종류와 그 칸이 속한 앱의
+  번들 ID만 읽습니다 — 칸의 내용은 읽지 않고, 읽은 것은 저장하지도 로그에 남기지도
   않습니다. 거부해도 ⌥Space + 수동 ⌘V로 전체 기능을 그대로 쓸 수 있습니다.
 
 ## 데이터 삭제
@@ -106,9 +108,10 @@ transcribed text is tagged with the `org.nspasteboard.ConcealedType` marker so
 clipboard managers (e.g. vClips) don't record it in their history.
 
 When the text is only copied instead of inserted (no Accessibility permission, a
-password field or secure input being on without a confirmed non-password field, or
-you switched apps while it was transcribing), it stays on the clipboard and the
-previous contents are not restored.
+password field or secure input being on without a confirmed non-password field,
+your cursor being in a terminal app while secure input is on, or you switched apps
+while it was transcribing), it stays on the clipboard and the previous contents
+are not restored.
 
 ## Permissions
 
@@ -116,10 +119,11 @@ previous contents are not restored.
   app can't do its core job and points you to System Settings.
 - **Accessibility** (opt-in) — used solely to detect the right-⌘ hold and to
   auto-insert text at your cursor (synthesized ⌘V). While secure input (used for
-  password fields) is on, it also reads the type of the field under your cursor
-  before inserting, to check that it isn't a password field — never the field's
-  contents, and nothing is stored. If denied, ⌥Space + manual ⌘V still gives you
-  the full feature set.
+  password fields) is on, it also reads, before inserting, the type of the field
+  under your cursor and the bundle ID of the app that field belongs to, to check
+  that it isn't a password field or a terminal — never the field's contents, and
+  nothing it reads is stored or logged. If denied, ⌥Space + manual ⌘V still gives
+  you the full feature set.
 
 ## Data deletion
 
