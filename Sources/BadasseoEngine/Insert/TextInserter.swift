@@ -7,7 +7,8 @@ public enum InsertResult {
     case pasted
     /// 손쉬운 사용 권한이 없거나 키 이벤트를 만들지 못해 클립보드에만 담았다.
     case copiedOnly
-    /// 보안 입력 모드가 켜져 있어 클립보드에만 담았다(`PasteBlock.secureInput`).
+    /// 보안 입력 모드가 켜져 있고 커서 칸이 보통 입력 칸이라고 확인하지 못해 클립보드에만 담았다
+    /// (`PasteBlock.secureInput`).
     case copiedSecureInput
 }
 
@@ -20,28 +21,12 @@ public enum TextInserter {
     /// `insert`와 `press`에 넘긴다 — 따로 다시 판단하면 그사이 답이 바뀌어(손쉬운 사용 조회가 응답 없음으로
     /// 끝나는 등) 앱 전환 규칙을 건너뛰고 붙여넣거나, 글은 들어가고 명령 키만 빠질 수 있다.
     ///
-    /// 보안 입력이 켜져 있을 때만 세션 정보와 손쉬운 사용 정보를 더 읽는다. 평소 받아쓰기에는 비용을
-    /// 더하지 않고, 기록된 앱이 맨 앞 앱이면(대개 그렇다) 손쉬운 사용 조회 없이 막는다. 응답 없는 앱이
-    /// 앞에 있으면 손쉬운 사용 조회 두 번에 최대 1초쯤 메인 스레드가 기다린다.
+    /// 보안 입력이 켜져 있을 때만 손쉬운 사용 정보를 더 읽는다. 평소 받아쓰기에는 비용을 더하지 않는다.
+    /// 응답 없는 앱이 앞에 있으면 손쉬운 사용 조회 세 번에 최대 1.5초쯤 메인 스레드가 기다린다.
     public static func pasteBlock() -> PasteBlock? {
         guard hasAccessibility else { return .noAccessibility }
         guard IsSecureEventInputEnabled() else { return nil }
-        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        let recorded = secureInputRecordedPID
-        var focus: (pid: pid_t, field: FocusedField)?
-        if let recorded, let front, recorded != front { focus = focusedField() }
-        return PasteBlock(trusted: true, secureInputOn: true,
-                          heldInBackground: PasteBlock.heldInBackground(
-                              recordedPID: recorded, frontmostPID: front, focusedPID: focus?.pid),
-                          focusedField: focus?.field ?? .unknown)
-    }
-
-    /// 보안 입력을 켠 앱으로 기록된 PID. macOS 세션 정보의 `kCGSSessionSecureInputPID`를 읽는다
-    /// (`ioreg -l -w 0 | grep kCGSSessionSecureInputPID`와 같은 값). Apple 문서에 없는 키이고, 대개 실제로
-    /// 켠 앱이 아니라 맨 앞 앱이 기록된다(`PasteBlock.heldInBackground`). 키가 없으면 nil.
-    private static var secureInputRecordedPID: pid_t? {
-        guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return nil }
-        return (session["kCGSSessionSecureInputPID"] as? NSNumber)?.int32Value
+        return PasteBlock(trusted: true, secureInputOn: true, focusedField: focusedField())
     }
 
     /// 손쉬운 사용 조회가 응답 없는 앱에 오래 묶이지 않도록(기본값은 6초) 한 번만 줄여 둔다. 시스템 전체
@@ -50,20 +35,21 @@ public enum TextInserter {
         AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.5)
     }()
 
-    /// 지금 키보드 입력이 가는 칸과 그 칸의 앱. 포커스된 칸을 찾지 못하면 nil — Electron 앱은 이 정보를
-    /// 내주지 않을 때가 많다(2026-11-27 실측: Electron 기반 IDE에서 kAXErrorCannotComplete).
-    private static func focusedField() -> (pid: pid_t, field: FocusedField)? {
+    /// 지금 키보드 입력이 가는 칸. 시스템 전체 요소에 묻는다 — 앱을 앞으로 가져오지 않고 뜨는 창(암호
+    /// 관리자의 빠른 입력 창 등)처럼 키보드 입력이 맨 앞 앱이 아닌 곳으로 갈 때도 실제로 입력이 가는 칸을
+    /// 돌려준다. 칸을 찾지 못하면 `.unknown` — 막는 쪽이다.
+    ///
+    /// 진단용 명령줄 프로그램에서 이 조회를 재면 화면 서버(WindowServer)에 연결되기 전에는
+    /// kAXErrorCannotComplete로 실패한다(2026-11-28 실측). 이 앱은 처음부터 연결돼 있어 해당하지 않는다.
+    private static func focusedField() -> FocusedField {
         _ = shortMessagingTimeout
         var focused: CFTypeRef?
         guard AXUIElementCopyAttributeValue(AXUIElementCreateSystemWide(),
                                             kAXFocusedUIElementAttribute as CFString, &focused) == .success,
               let focused, CFGetTypeID(focused) == AXUIElementGetTypeID()
-        else { return nil }
+        else { return .unknown }
         let element = focused as! AXUIElement
-        var pid: pid_t = 0
-        guard AXUIElementGetPid(element, &pid) == .success else { return nil }
-        return (pid, FocusedField(role: read(element, kAXRoleAttribute),
-                                  subrole: read(element, kAXSubroleAttribute)))
+        return FocusedField(role: read(element, kAXRoleAttribute), subrole: read(element, kAXSubroleAttribute))
     }
 
     private static func read(_ element: AXUIElement, _ attribute: String) -> FocusedField.Attribute {
